@@ -35,20 +35,25 @@ jobs:
       - name: Verifica l'eseguibile e genera la guida
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force -Path release | Out-Null
-          Copy-Item build-output/RomeCampaignPDF.exe release/
-          Copy-Item README.md release/
-          & build-output/RomeCampaignPDF.exe --guide-only release/Guida-uso.pdf
+          $release = Join-Path $env:GITHUB_WORKSPACE "release"
+          $zip = Join-Path $env:GITHUB_WORKSPACE "RomeCampaignPDF-Windows.zip"
+          New-Item -ItemType Directory -Force -Path $release | Out-Null
+          Copy-Item build-output/RomeCampaignPDF.exe $release
+          Copy-Item README.md $release
+          & build-output/RomeCampaignPDF.exe --guide-only (Join-Path $release "Guida-uso.pdf")
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          if (-not (Test-Path release/Guida-uso.pdf)) {
+          if (-not (Test-Path (Join-Path $release "Guida-uso.pdf"))) {
             throw "La guida PDF non è stata generata."
           }
-          Compress-Archive -Path release/* -DestinationPath RomeCampaignPDF-Windows.zip
+          Compress-Archive -Path (Join-Path $release "*") -DestinationPath $zip -Force
+          if (-not (Test-Path $zip)) {
+            throw "Il pacchetto ZIP non è stato generato."
+          }
 
       - name: Pubblica il pacchetto
         uses: actions/upload-artifact@v4
         with:
           name: RomeCampaignPDF-Windows
-          path: RomeCampaignPDF-Windows.zip
+          path: ${{ github.workspace }}/RomeCampaignPDF-Windows.zip
           if-no-files-found: error
           retention-days: 30
