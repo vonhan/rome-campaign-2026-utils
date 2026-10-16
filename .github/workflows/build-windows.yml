@@ -55,6 +55,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: RomeCampaignPDF-Windows
-          path: ${{ github.workspace }}/RomeCampaignPDF-Windows.zip
+          path: RomeCampaignPDF-Windows.zip
           if-no-files-found: error
           retention-days: 30
