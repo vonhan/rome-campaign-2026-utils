@@ -101,3 +101,31 @@ def test_typical_seven_day_appointment_fits_on_one_page(
     write_appointment_pdf(appointment, output, Path("assets/icon.png"))
 
     assert len(PdfReader(output).pages) == 1
+
+
+def test_appointment_pdf_renders_with_campaign_logo(tmp_path: Path) -> None:
+    appointment = Appointment(
+        group_code="LOGO-01",
+        group_contact="Referente Sintetico",
+        kingdom_hall="Sala Centro",
+        guest_count="2",
+        guest_vehicle="Auto blu",
+        assignments=[
+            DayAssignment(
+                date_label="26/10 (Lunedì)",
+                morning=Volunteer(raw="ROSSI, MARIO: 000 111 222"),
+                note="Nota sintetica",
+            )
+        ],
+        source_row_number=3,
+    )
+    output = tmp_path / "campaign-logo.pdf"
+
+    write_appointment_pdf(
+        appointment, output, Path("assets/Rome_campaign_2026_logo.png")
+    )
+
+    reader = PdfReader(output)
+    assert len(reader.pages) == 1
+    assert output.stat().st_size > 0
+    assert "Campagna Speciale Roma 2026" in _pdf_text(output)

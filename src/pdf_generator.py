@@ -44,8 +44,9 @@ def _volunteer_text(volunteer: Volunteer | None) -> str:
 def _logo_image(logo_path: str | Path) -> Image:
     path = Path(logo_path)
     width, height = ImageReader(str(path)).getSize()
-    max_size = 22 * mm
-    scale = min(max_size / width, max_size / height)
+    max_width = 34 * mm
+    max_height = 22 * mm
+    scale = min(max_width / width, max_height / height)
     return Image(str(path), width=width * scale, height=height * scale)
 
 
@@ -217,7 +218,7 @@ def write_appointment_pdf(
                 ),
             ],
         ]],
-        colWidths=[28 * mm, 150 * mm],
+        colWidths=[38 * mm, 140 * mm],
     )
     heading.setStyle(
         TableStyle(
@@ -404,7 +405,7 @@ def write_user_guide_pdf(
                     ),
                 ],
             ]],
-            colWidths=[30 * mm, 130 * mm],
+            colWidths=[38 * mm, 122 * mm],
         ),
         Spacer(1, 6 * mm),
         Paragraph("Come generare i PDF", styles["guide_heading"]),

@@ -12,6 +12,7 @@ dist/
 build/
 release/
 .DS_Store
+*:Zone.Identifier
 output/
 *.log
 
