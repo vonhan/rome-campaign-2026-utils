@@ -29,6 +29,8 @@ _GOLD = colors.HexColor("#D7A928")
 _TEXT = colors.HexColor("#243746")
 _MUTED = colors.HexColor("#5F6F7B")
 
+CAMPAIGN_TITLE = "Campagna Speciale Roma 2026"
+
 
 def _paragraph_text(value: object, empty: str = "—") -> str:
     text = str(value).strip() if value is not None else ""
@@ -86,13 +88,23 @@ def _icon(kind: str, color: colors.Color = _BLUE) -> Drawing:
 def _styles() -> dict[str, ParagraphStyle]:
     base = getSampleStyleSheet()
     return {
+        "campaign": ParagraphStyle(
+            "CampaignTitle",
+            parent=base["Title"],
+            fontName="Helvetica-Bold",
+            fontSize=22,
+            leading=25,
+            textColor=_BLUE,
+            alignment=0,
+            spaceAfter=1,
+        ),
         "title": ParagraphStyle(
             "AppointmentTitle",
             parent=base["Title"],
             fontName="Helvetica-Bold",
-            fontSize=20,
-            leading=23,
-            textColor=_BLUE,
+            fontSize=14,
+            leading=17,
+            textColor=_GOLD,
             alignment=0,
             spaceAfter=2,
         ),
@@ -165,10 +177,10 @@ def _styles() -> dict[str, ParagraphStyle]:
 
 def _page_footer(canvas: Canvas, document: SimpleDocTemplate) -> None:
     canvas.saveState()
-    canvas.setTitle("Appuntamento di servizio - Roma 2026")
+    canvas.setTitle(f"{CAMPAIGN_TITLE} - Appuntamento di servizio")
     canvas.setFont("Helvetica", 8)
     canvas.setFillColor(_MUTED)
-    canvas.drawString(15 * mm, 8 * mm, "Campagna di predicazione Roma 2026")
+    canvas.drawString(15 * mm, 8 * mm, CAMPAIGN_TITLE)
     canvas.drawRightString(A4[0] - 15 * mm, 8 * mm, f"Pagina {document.page}")
     canvas.restoreState()
 
@@ -189,7 +201,7 @@ def write_appointment_pdf(
         leftMargin=14 * mm,
         topMargin=11 * mm,
         bottomMargin=14 * mm,
-        title=f"Appuntamento {appointment.title}",
+        title=f"{CAMPAIGN_TITLE} - Appuntamento {appointment.title}",
         author="Rome Campaign 2026 Utils",
     )
 
@@ -197,6 +209,7 @@ def write_appointment_pdf(
         [[
             _logo_image(logo_path),
             [
+                Paragraph(CAMPAIGN_TITLE, styles["campaign"]),
                 Paragraph("Appuntamento di servizio", styles["title"]),
                 Paragraph(
                     f"Gruppo {_paragraph_text(appointment.group_code)}",
@@ -319,7 +332,7 @@ def write_user_guide_pdf(
         leftMargin=18 * mm,
         topMargin=14 * mm,
         bottomMargin=15 * mm,
-        title="Guida all'uso - Generatore PDF appuntamenti",
+        title=f"{CAMPAIGN_TITLE} - Guida all'uso",
         author="Rome Campaign 2026 Utils",
     )
 
@@ -383,9 +396,10 @@ def write_user_guide_pdf(
             [[
                 _logo_image(logo_path),
                 [
+                    Paragraph(CAMPAIGN_TITLE, styles["campaign"]),
                     Paragraph("Guida rapida", styles["title"]),
                     Paragraph(
-                        "Generatore PDF appuntamenti — Roma 2026",
+                        "Generatore PDF appuntamenti",
                         styles["subtitle"],
                     ),
                 ],

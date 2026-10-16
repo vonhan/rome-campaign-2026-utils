@@ -46,6 +46,9 @@ def _appointment_filename(appointment: Appointment) -> str:
 
 
 def default_logo_path() -> Path:
+    campaign_logo = resource_path("assets/Rome_campaign_2026_logo.png")
+    if campaign_logo.is_file():
+        return campaign_logo
     return resource_path("assets/icon.png")
 
 

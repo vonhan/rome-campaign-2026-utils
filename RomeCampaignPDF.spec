@@ -1,10 +1,16 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+import os
+
+_assets = [("assets/icon.png", "assets")]
+if os.path.isfile("assets/Rome_campaign_2026_logo.png"):
+    _assets.append(("assets/Rome_campaign_2026_logo.png", "assets"))
+
 a = Analysis(
     ["main.py"],
     pathex=[],
     binaries=[],
-    datas=[("assets/icon.png", "assets")],
+    datas=_assets,
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

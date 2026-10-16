@@ -43,6 +43,7 @@ def test_appointment_pdf_contains_all_sections_and_escaped_text(
     reader = PdfReader(output)
     text = _pdf_text(output)
     assert len(reader.pages) == 1
+    assert "Campagna Speciale Roma 2026" in text
     assert "Appuntamento di servizio" in text
     assert "TEST-01" in text
     assert "Referente & Collaboratore" in text
@@ -60,6 +61,7 @@ def test_user_guide_pdf_contains_usage_and_privacy_instructions(
     write_user_guide_pdf(output, Path("assets/icon.png"))
 
     text = _pdf_text(output)
+    assert "Campagna Speciale Roma 2026" in text
     assert "Guida rapida" in text
     assert "Scegli il file Excel" in text
     assert "Protezione dei dati" in text

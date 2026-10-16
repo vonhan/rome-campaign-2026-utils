@@ -57,3 +57,23 @@ def test_generated_filename_contains_group_and_unique_volunteer_names(
     assert result.appointment_files[0].name == (
         "Appuntamento-RM-01-ROSSI-MARIO-VERDI-ANNA-BIANCHI-LUCA-riga-3.pdf"
     )
+
+
+def test_campaign_logo_is_preferred_when_available(monkeypatch, tmp_path: Path) -> None:
+    campaign_logo = tmp_path / "assets" / "Rome_campaign_2026_logo.png"
+    campaign_logo.parent.mkdir(parents=True)
+    campaign_logo.write_bytes(Path("assets/icon.png").read_bytes())
+    monkeypatch.setattr(service, "resource_path", lambda relative: tmp_path / relative)
+
+    assert service.default_logo_path() == campaign_logo
+
+
+def test_default_logo_falls_back_when_campaign_logo_missing(
+    monkeypatch, tmp_path: Path
+) -> None:
+    fallback = tmp_path / "assets" / "icon.png"
+    fallback.parent.mkdir(parents=True)
+    fallback.write_bytes(Path("assets/icon.png").read_bytes())
+    monkeypatch.setattr(service, "resource_path", lambda relative: tmp_path / relative)
+
+    assert service.default_logo_path() == fallback

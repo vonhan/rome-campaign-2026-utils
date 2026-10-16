@@ -8,6 +8,7 @@ def test_windows_packaging_includes_logo_tests_and_guide_smoke_check() -> None:
     )
 
     assert '("assets/icon.png", "assets")' in spec
+    assert '("assets/Rome_campaign_2026_logo.png", "assets")' in spec
     assert "python -m pytest" in workflow
     assert "--guide-only (Join-Path $release" in workflow
     assert "path: release" in workflow
