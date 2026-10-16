@@ -44,6 +44,8 @@ jobs:
           if (-not (Test-Path (Join-Path $release "Guida-uso.pdf"))) {
             throw "La guida PDF non è stata generata."
           }
+          $hash = Get-FileHash (Join-Path $release "RomeCampaignPDF.exe") -Algorithm SHA256
+          "$($hash.Hash)  RomeCampaignPDF.exe" | Set-Content -Encoding ascii (Join-Path $release "SHA256SUMS.txt")
           Get-ChildItem -LiteralPath $release -File | Format-Table Name,Length
 
       - name: Pubblica il pacchetto

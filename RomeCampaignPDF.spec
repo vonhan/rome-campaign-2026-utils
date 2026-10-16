@@ -31,7 +31,8 @@ exe = EXE(
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=True,
+    # Avoid UPX-packed bootloaders, which can trigger antivirus heuristics.
+    upx=False,
     upx_exclude=[],
     runtime_tmpdir=None,
     console=False,

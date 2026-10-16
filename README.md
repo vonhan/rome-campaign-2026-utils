@@ -9,7 +9,25 @@ offre anche una modalità da terminale per supporto tecnico e automazioni Linux.
 Modo consigliato, anche per utenti non tecnici:
 
 1. Aprire la pagina **Releases** del repository.
-2. Nell'ultima versione scaricare `RomeCampaignPDF.exe` e `Guida-uso.pdf`.
+2. Nell'ultima versione scaricare `RomeCampaignPDF.exe`, `Guida-uso.pdf` e
+   `SHA256SUMS.txt`.
+
+Per verificare che l'eseguibile scaricato sia quello pubblicato, aprire
+PowerShell nella cartella dei file ed eseguire:
+
+```powershell
+Get-FileHash .\RomeCampaignPDF.exe -Algorithm SHA256
+```
+
+Il valore visualizzato deve coincidere con quello riportato nella riga
+`RomeCampaignPDF.exe` di `SHA256SUMS.txt`. Il controllo non sostituisce la
+protezione antivirus, ma rileva download incompleti o modificati.
+
+Alcuni antivirus possono segnalare falsi positivi sugli eseguibili Python
+autocontenuti e non firmati. Questa build evita la compressione UPX per ridurre
+le segnalazioni euristiche. Se il rilevamento persiste, non disattivare
+l'antivirus: comunicare il nome della minaccia, la versione della release e il
+produttore dell'antivirus al manutentore del progetto per l'analisi.
 
 In alternativa, per uso tecnico, il pacchetto è disponibile come artifact
 `RomeCampaignPDF-Windows` nella pagina della singola esecuzione riuscita della
@@ -18,7 +36,9 @@ workflow **Test e pacchetto Windows** (sezione *Artifacts*, in fondo alla run).
 ## Uso su Windows
 
 1. Salvare `RomeCampaignPDF.exe` in una cartella.
-2. Fare doppio clic su `RomeCampaignPDF.exe`.
+2. Fare doppio clic su `RomeCampaignPDF.exe`. Se Windows mostra un avviso,
+   verificare prima il checksum indicato sopra e usare il file solo se
+   proviene dalla Release ufficiale.
 3. Selezionare il file Excel degli appuntamenti.
 4. Selezionare la cartella in cui salvare i documenti.
 5. Premere **Genera PDF**.
