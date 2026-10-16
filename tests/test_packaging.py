@@ -12,4 +12,5 @@ def test_windows_packaging_includes_logo_tests_and_guide_smoke_check() -> None:
     assert "--guide-only (Join-Path $release" in workflow
     assert "${{ github.workspace }}/RomeCampaignPDF-Windows.zip" in workflow
     assert "RomeCampaignPDF-Windows.zip" in workflow
+    assert "tar.exe -a -c -f $zip" in workflow
     assert "actions/upload-artifact@v4" in workflow

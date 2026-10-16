@@ -45,7 +45,7 @@ jobs:
           if (-not (Test-Path (Join-Path $release "Guida-uso.pdf"))) {
             throw "La guida PDF non è stata generata."
           }
-          Compress-Archive -Path "$release\*" -DestinationPath $zip -Force
+          tar.exe -a -c -f $zip -C $release .
           if (-not (Test-Path -LiteralPath $zip)) {
             throw "Il pacchetto ZIP non è stato generato: $zip"
           }
