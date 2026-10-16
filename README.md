@@ -4,15 +4,24 @@ Applicazione desktop che legge il foglio Excel degli appuntamenti e crea un PDF
 chiaro e stampabile per ogni riga. È pensata per utenti Windows non tecnici, ma
 offre anche una modalità da terminale per supporto tecnico e automazioni Linux.
 
+## Download per Windows
+
+Modo consigliato, anche per utenti non tecnici:
+
+1. Aprire la pagina **Releases** del repository.
+2. Nell'ultima versione scaricare `RomeCampaignPDF.exe` e `Guida-uso.pdf`.
+
+In alternativa, per uso tecnico, il pacchetto è disponibile come artifact
+`RomeCampaignPDF-Windows` nella pagina della singola esecuzione riuscita della
+workflow **Test e pacchetto Windows** (sezione *Artifacts*, in fondo alla run).
+
 ## Uso su Windows
 
-1. Scaricare l'artifact `RomeCampaignPDF-Windows` dall'ultima esecuzione riuscita
-   della workflow **Test e pacchetto Windows**.
-2. Estrarre `RomeCampaignPDF-Windows.zip` in una cartella.
-3. Fare doppio clic su `RomeCampaignPDF.exe`.
-4. Selezionare il file Excel degli appuntamenti.
-5. Selezionare la cartella in cui salvare i documenti.
-6. Premere **Genera PDF**.
+1. Salvare `RomeCampaignPDF.exe` in una cartella.
+2. Fare doppio clic su `RomeCampaignPDF.exe`.
+3. Selezionare il file Excel degli appuntamenti.
+4. Selezionare la cartella in cui salvare i documenti.
+5. Premere **Genera PDF**.
 
 Nella cartella scelta vengono creati:
 
@@ -90,7 +99,8 @@ La workflow `.github/workflows/build-windows.yml` viene eseguita su ogni push a
 1. esegue l'intera suite di test;
 2. costruisce `RomeCampaignPDF.exe` con PyInstaller;
 3. usa l'eseguibile per generare la guida come smoke test;
-4. pubblica `RomeCampaignPDF-Windows.zip` come artifact solo se tutto riesce.
+4. pubblica l'artifact `RomeCampaignPDF-Windows` con eseguibile, guida e README
+   solo se tutto riesce.
 
 Build manuale su Windows:
 
