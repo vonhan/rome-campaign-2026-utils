@@ -45,7 +45,9 @@ jobs:
           if (-not (Test-Path (Join-Path $release "Guida-uso.pdf"))) {
             throw "La guida PDF non è stata generata."
           }
-          python -c "import shutil; shutil.make_archive(r'$($env:GITHUB_WORKSPACE)\RomeCampaignPDF-Windows', 'zip', r'$release')"
+          $env:ROME_RELEASE_DIR = $release
+          $env:ROME_ZIP_BASE = Join-Path $env:GITHUB_WORKSPACE "RomeCampaignPDF-Windows"
+          python -c "import os, shutil; print(shutil.make_archive(os.environ['ROME_ZIP_BASE'], 'zip', os.environ['ROME_RELEASE_DIR']))"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           if (-not (Test-Path -LiteralPath $zip)) {
             throw "Il pacchetto ZIP non è stato generato: $zip"
