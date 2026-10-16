@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from openpyxl import Workbook
 
-from src.excel_parser import parse_volunteer, read_appointments
+from src.excel_parser import parse_volunteer, parse_volunteers, read_appointments
 
 
 def test_read_appointments_understands_real_header_shape(
@@ -27,11 +27,11 @@ def test_read_appointments_understands_real_header_shape(
         "26/10 (Lunedì)",
         "27/10 (Martedì)",
     ]
-    assert appointment.assignments[0].morning is not None
-    assert appointment.assignments[0].morning.surname == "ROSSI"
-    assert appointment.assignments[0].morning.name == "MARIO"
-    assert appointment.assignments[0].morning.phone == "000 111 222"
-    assert appointment.assignments[1].afternoon is None
+    assert len(appointment.assignments[0].morning) == 1
+    assert appointment.assignments[0].morning[0].surname == "ROSSI"
+    assert appointment.assignments[0].morning[0].name == "MARIO"
+    assert appointment.assignments[0].morning[0].phone == "000 111 222"
+    assert appointment.assignments[1].afternoon == ()
 
 
 def test_read_appointments_keeps_every_non_empty_data_row(
@@ -69,6 +69,24 @@ def test_parse_volunteer_preserves_complete_or_partial_data(
 
 def test_parse_volunteer_returns_none_for_empty_value() -> None:
     assert parse_volunteer("  ") is None
+
+
+@pytest.mark.parametrize(
+    "separator",
+    [" e ", "; ", "\n"],
+)
+def test_parse_volunteers_splits_multiple_people(separator: str) -> None:
+    volunteers = parse_volunteers(
+        f"Rossi, Mario: 0000000001{separator}Verdi, Paolo: 0000000002"
+    )
+
+    assert [
+        (volunteer.surname, volunteer.name, volunteer.phone)
+        for volunteer in volunteers
+    ] == [
+        ("Rossi", "Mario", "0000000001"),
+        ("Verdi", "Paolo", "0000000002"),
+    ]
 
 
 def test_missing_required_header_is_reported(tmp_path: Path) -> None:

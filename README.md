@@ -41,12 +41,25 @@ workflow **Test e pacchetto Windows** (sezione *Artifacts*, in fondo alla run).
    proviene dalla Release ufficiale.
 3. Selezionare il file Excel degli appuntamenti.
 4. Selezionare la cartella in cui salvare i documenti.
-5. Premere **Genera PDF**.
+5. Scegliere la modalità di generazione:
+   - `Appuntamenti per capogruppo Delegato` per un PDF per ogni riga;
+   - `Appuntamenti per capogruppo Volontario` per un PDF per ogni volontario con tutti i suoi appuntamenti.
+6. Premere **Genera PDF**.
 
 Nella cartella scelta vengono creati:
 
-- un file `Appuntamento-...pdf` per ogni riga non vuota del foglio;
+- nella modalità delegato, un file
+  `Appuntamento-Referente-Gruppo-Codice-Gruppo-riga-N.pdf` per ogni riga non
+  vuota del foglio;
+- nella modalità volontario, un file `Volontario-Cognome-Nome-...pdf` per ogni
+  volontario distinto, con tutti i suoi appuntamenti;
 - `Guida-uso.pdf`, con le istruzioni per l'operatore.
+
+Ogni appuntamento del PDF volontario riporta codice gruppo, capogruppo
+delegato, Sala del Regno, numero e auto degli ospiti, data, fascia e note. Non
+riporta i dati del volontario assegnato all'altra fascia. Se più volontari sono
+nella stessa fascia dello stesso appuntamento, il PDF di ciascuno indica anche
+gli altri volontari presenti.
 
 Non è necessario installare Python.
 
@@ -64,6 +77,16 @@ Le celle Mattina e Pomeriggio possono contenere un accompagnatore nel formato:
 ```text
 COGNOME, NOME: NUMERO_TELEFONO
 ```
+
+Se più volontari condividono la stessa fascia, separarli con ` e `:
+
+```text
+ROSSI, MARIO: 0000000001 e VERDI, PAOLO: 0000000002
+```
+
+In modalità volontario l'appuntamento viene inserito nel PDF di ciascuna
+persona, senza creare un unico PDF con i nomi combinati. Sono accettati anche
+il punto e virgola o una nuova riga come separatori.
 
 I dati parziali vengono conservati e mostrati senza inventare informazioni
 mancanti. Righe con tutti e cinque i campi principali vuoti vengono ignorate.
@@ -94,6 +117,21 @@ Per aprire la GUI:
 ```bash
 python main.py
 ```
+
+Per generare il flusso standard per delegati:
+
+```bash
+python main.py --input "/percorso/appuntamenti.xlsx" --output "/percorso/pdf" --mode delegato
+```
+
+Per generare invece il flusso per volontario:
+
+```bash
+python main.py --input "/percorso/appuntamenti.xlsx" --output "/percorso/pdf" --mode volontario
+```
+
+La modalità volontario considera uguali le occorrenze con lo stesso cognome,
+nome e telefono, ignorando differenze di maiuscole e spazi.
 
 Per generare soltanto la guida:
 

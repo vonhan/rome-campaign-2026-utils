@@ -20,7 +20,7 @@ from reportlab.platypus import (
     TableStyle,
 )
 
-from src.models import Appointment, Volunteer
+from src.models import Appointment, Volunteer, VolunteerScheduleEntry
 
 
 _BLUE = colors.HexColor("#1E4E79")
@@ -37,8 +37,10 @@ def _paragraph_text(value: object, empty: str = "—") -> str:
     return escape(text or empty).replace("\n", "<br/>")
 
 
-def _volunteer_text(volunteer: Volunteer | None) -> str:
-    return _paragraph_text(volunteer.display if volunteer else "")
+def _volunteer_text(volunteers: tuple[Volunteer, ...]) -> str:
+    return _paragraph_text(
+        " e ".join(volunteer.display for volunteer in volunteers)
+    )
 
 
 def _logo_image(logo_path: str | Path) -> Image:
@@ -318,6 +320,172 @@ def write_appointment_pdf(
     return output_file
 
 
+def write_volunteer_schedule_pdf(
+    volunteer: Volunteer,
+    entries: list[VolunteerScheduleEntry],
+    output_path: str | Path,
+    logo_path: str | Path,
+) -> Path:
+    output_file = Path(output_path)
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    styles = _styles()
+    pdf_buffer = BytesIO()
+    document = SimpleDocTemplate(
+        pdf_buffer,
+        pagesize=A4,
+        rightMargin=14 * mm,
+        leftMargin=14 * mm,
+        topMargin=11 * mm,
+        bottomMargin=14 * mm,
+        title=f"{CAMPAIGN_TITLE} - Volontario {volunteer.display_name}",
+        author="Rome Campaign 2026 Utils",
+    )
+
+    heading = Table(
+        [[
+            _logo_image(logo_path),
+            [
+                Paragraph(CAMPAIGN_TITLE, styles["campaign"]),
+                Paragraph("Appuntamenti del volontario", styles["title"]),
+                Paragraph(_paragraph_text(volunteer.display), styles["subtitle"]),
+            ],
+        ]],
+        colWidths=[38 * mm, 140 * mm],
+    )
+    heading.setStyle(
+        TableStyle(
+            [
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+                ("LINEBELOW", (0, 0), (-1, -1), 1.5, _GOLD),
+            ]
+        )
+    )
+
+    info_rows = [
+        (_icon("group"), "TELEFONO", volunteer.phone or "—"),
+        (_icon("sun"), "NUMERO APPUNTAMENTI", str(len(entries))),
+    ]
+    info_table = Table(
+        [
+            [
+                icon,
+                Paragraph(label, styles["label"]),
+                Paragraph(_paragraph_text(value), styles["body"]),
+            ]
+            for icon, label, value in info_rows
+        ],
+        colWidths=[8 * mm, 45 * mm, 120 * mm],
+    )
+    info_table.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, -1), _LIGHT_BLUE),
+                ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#BFD5E3")),
+                ("INNERGRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#D7E5ED")),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 5),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+                ("TOPPADDING", (0, 0), (-1, -1), 4),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            ]
+        )
+    )
+
+    story: list[object] = [
+        heading,
+        Spacer(1, 4 * mm),
+        info_table,
+        Spacer(1, 4 * mm),
+        Paragraph("Elenco degli appuntamenti", styles["guide_heading"]),
+    ]
+    for entry in entries:
+        entry_table = Table(
+            [
+                [
+                    Paragraph(
+                        f"<b>{_paragraph_text(entry.date_label)}</b> · "
+                        f"{_paragraph_text(entry.slot)}",
+                        styles["day"],
+                    ),
+                    Paragraph(
+                        f"GRUPPO {_paragraph_text(entry.group_code)}",
+                        styles["day"],
+                    ),
+                ],
+                [
+                    Paragraph("CAPOGRUPPO DELEGATO", styles["label"]),
+                    Paragraph(
+                        _paragraph_text(entry.group_contact),
+                        styles["body"],
+                    ),
+                ],
+                [
+                    Paragraph("SALA DEL REGNO", styles["label"]),
+                    Paragraph(
+                        _paragraph_text(entry.kingdom_hall),
+                        styles["body"],
+                    ),
+                ],
+                [
+                    Paragraph("NUMERO OSPITI", styles["label"]),
+                    Paragraph(
+                        _paragraph_text(entry.guest_count),
+                        styles["body"],
+                    ),
+                ],
+                [
+                    Paragraph("AUTO OSPITI", styles["label"]),
+                    Paragraph(
+                        _paragraph_text(entry.guest_vehicle),
+                        styles["body"],
+                    ),
+                ],
+                [
+                    Paragraph("ALTRI VOLONTARI", styles["label"]),
+                    Paragraph(
+                        _paragraph_text(
+                            " e ".join(
+                                other.display
+                                for other in entry.other_volunteers
+                            )
+                        ),
+                        styles["body"],
+                    ),
+                ],
+                [
+                    Paragraph("NOTE", styles["label"]),
+                    Paragraph(_paragraph_text(entry.note), styles["body"]),
+                ],
+            ],
+            colWidths=[48 * mm, 126 * mm],
+            splitByRow=1,
+            splitInRow=1,
+        )
+        entry_table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), _BLUE),
+                    ("BACKGROUND", (0, 1), (0, -1), _LIGHT_BLUE),
+                    ("GRID", (0, 0), (-1, -1), 0.35, colors.HexColor("#B8CBD7")),
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                    ("ALIGN", (1, 0), (1, 0), "RIGHT"),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 6),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+                    ("TOPPADDING", (0, 0), (-1, -1), 5),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+                ]
+            )
+        )
+        story.extend([entry_table, Spacer(1, 3 * mm)])
+
+    document.build(story, onFirstPage=_page_footer, onLaterPages=_page_footer)
+    output_file.write_bytes(pdf_buffer.getvalue())
+    return output_file
+
+
 def write_user_guide_pdf(
     output_path: str | Path, logo_path: str | Path
 ) -> Path:
@@ -350,13 +518,18 @@ def write_user_guide_pdf(
         ),
         (
             "4",
+            "Scegli il tipo di PDF",
+            "Seleziona gli appuntamenti per capogruppo delegato oppure per capogruppo volontario.",
+        ),
+        (
+            "5",
             "Genera i documenti",
             "Premi “Genera PDF” e attendi il messaggio di completamento.",
         ),
         (
-            "5",
+            "6",
             "Apri i risultati",
-            "Nella cartella scelta troverai un PDF per ogni appuntamento e questa guida.",
+            "Nella cartella scelta troverai un PDF per ogni delegato o volontario, in base alla modalità scelta, e questa guida.",
         ),
     ]
     step_table = Table(

@@ -14,6 +14,12 @@ def run_cli(argv: list[str] | None = None) -> int:
     parser.add_argument("--input", help="File Excel .xlsx da elaborare.")
     parser.add_argument("--output", help="Cartella di destinazione dei PDF.")
     parser.add_argument(
+        "--mode",
+        choices=["delegato", "volontario", "delegate", "volunteer"],
+        default="delegato",
+        help="Modalità di generazione: delegato o volontario.",
+    )
+    parser.add_argument(
         "--guide-only",
         metavar="PDF",
         help="Genera soltanto la guida utente nel percorso indicato.",
@@ -32,13 +38,18 @@ def run_cli(argv: list[str] | None = None) -> int:
         if not args.input or not args.output:
             parser.error("--input e --output sono obbligatori.")
 
-        result = generate_documents(args.input, args.output, args.logo)
+        result = generate_documents(args.input, args.output, args.logo, mode=args.mode)
     except (OSError, ValueError) as exc:
         print(f"Errore: {exc}", file=sys.stderr)
         return 1
 
+    subject = (
+        "capogruppo delegato"
+        if args.mode in {"delegato", "delegate"}
+        else "capogruppo volontario"
+    )
     print(
-        f"Generati {len(result.appointment_files)} PDF di appuntamento "
+        f"Generati {len(result.appointment_files)} PDF per {subject} "
         f"in {Path(args.output)}."
     )
     print(f"Guida utente: {result.guide_file}")

@@ -4,8 +4,12 @@ from pathlib import Path
 
 from pypdf import PdfReader
 
-from src.models import Appointment, DayAssignment, Volunteer
-from src.pdf_generator import write_appointment_pdf, write_user_guide_pdf
+from src.models import Appointment, DayAssignment, Volunteer, VolunteerScheduleEntry
+from src.pdf_generator import (
+    write_appointment_pdf,
+    write_user_guide_pdf,
+    write_volunteer_schedule_pdf,
+)
 
 
 def _pdf_text(path: Path) -> str:
@@ -24,13 +28,14 @@ def test_appointment_pdf_contains_all_sections_and_escaped_text(
         assignments=[
             DayAssignment(
                 date_label="26/10 (Lunedì)",
-                morning=Volunteer(
-                    raw="ROSSI, MARIO: 000",
-                    surname="ROSSI",
-                    name="MARIO",
-                    phone="000",
+                morning=(
+                    Volunteer(
+                        raw="ROSSI, MARIO: 000",
+                        surname="ROSSI",
+                        name="MARIO",
+                        phone="000",
+                    ),
                 ),
-                afternoon=None,
                 note="Nota sintetica & verificabile",
             )
         ],
@@ -64,6 +69,9 @@ def test_user_guide_pdf_contains_usage_and_privacy_instructions(
     assert "Campagna Speciale Roma 2026" in text
     assert "Guida rapida" in text
     assert "Scegli il file Excel" in text
+    assert "Scegli il tipo di PDF" in text
+    assert "capogruppo delegato" in text
+    assert "capogruppo volontario" in text
     assert "Protezione dei dati" in text
     assert "senza allegare il file Excel" in text
 
@@ -74,8 +82,8 @@ def test_typical_seven_day_appointment_fits_on_one_page(
     assignments = [
         DayAssignment(
             date_label=f"{26 + day}/10",
-            morning=Volunteer(raw="ROSSI, MARIO: 000 111 222"),
-            afternoon=Volunteer(raw="VERDI, ANNA: 000 333 444"),
+            morning=(Volunteer(raw="ROSSI, MARIO: 000 111 222"),),
+            afternoon=(Volunteer(raw="VERDI, ANNA: 000 333 444"),),
             note="Nota sintetica",
         )
         for day in range(6)
@@ -83,7 +91,7 @@ def test_typical_seven_day_appointment_fits_on_one_page(
     assignments.append(
         DayAssignment(
             date_label="01/11",
-            morning=Volunteer(raw="BIANCHI, LUCA: 000 555 666"),
+            morning=(Volunteer(raw="BIANCHI, LUCA: 000 555 666"),),
             note="Nota sintetica",
         )
     )
@@ -113,7 +121,7 @@ def test_appointment_pdf_renders_with_campaign_logo(tmp_path: Path) -> None:
         assignments=[
             DayAssignment(
                 date_label="26/10 (Lunedì)",
-                morning=Volunteer(raw="ROSSI, MARIO: 000 111 222"),
+                morning=(Volunteer(raw="ROSSI, MARIO: 000 111 222"),),
                 note="Nota sintetica",
             )
         ],
@@ -148,3 +156,51 @@ def test_documents_keep_their_own_titles(tmp_path: Path) -> None:
     guide_title = PdfReader(guide_pdf).metadata.title
     assert appointment_title == "Campagna Speciale Roma 2026 - Appuntamento TITOLI-01"
     assert guide_title == "Campagna Speciale Roma 2026 - Guida all'uso"
+
+
+def test_volunteer_schedule_flows_across_pages_without_losing_entries(
+    tmp_path: Path,
+) -> None:
+    volunteer = Volunteer(
+        raw="ROSSI, MARIO: 000",
+        surname="ROSSI",
+        name="MARIO",
+        phone="000",
+    )
+    entries = [
+        VolunteerScheduleEntry(
+            volunteer=volunteer,
+            group_code=f"GRUPPO-{index:02d}",
+            group_contact=f"Delegato {index}",
+            kingdom_hall=f"Sala {index}",
+            guest_count=str(index),
+            guest_vehicle=f"Auto {index}",
+            date_label=f"{index:02d}/11",
+            slot="Mattina" if index % 2 else "Pomeriggio",
+            note=(
+                f"Nota appuntamento {index} con contenuto sintetico "
+                "sufficientemente lungo per verificare l'impaginazione."
+            ),
+            source_row_number=index + 2,
+            date_order=index,
+        )
+        for index in range(1, 13)
+    ]
+    output = tmp_path / "volunteer-many.pdf"
+
+    write_volunteer_schedule_pdf(
+        volunteer,
+        entries,
+        output,
+        Path("assets/icon.png"),
+    )
+
+    reader = PdfReader(output)
+    text = _pdf_text(output)
+    assert len(reader.pages) > 1
+    for index in range(1, 13):
+        assert f"GRUPPO-{index:02d}" in text
+        assert f"Delegato {index}" in text
+        assert f"Sala {index}" in text
+        assert f"Auto {index}" in text
+        assert f"Nota appuntamento {index}" in text

@@ -15,6 +15,11 @@ _DATE_RE = re.compile(r"^\d{1,2}/\d{1,2}(?:\s|$)")
 _VOLUNTEER_RE = re.compile(
     r"^\s*(?P<surname>[^,:]+?)\s*,\s*(?P<name>[^:]+?)\s*:\s*(?P<phone>.+?)\s*$"
 )
+_VOLUNTEER_SEPARATOR_RE = re.compile(
+    r"(?:\s+\be\b\s+|\s*;\s*|\s*\n+\s*)"
+    r"(?=[^,:;\n]+,\s*[^:;\n]+:\s*)",
+    flags=re.IGNORECASE,
+)
 _FIELD_ALIASES = {
     "group_code": ("codice gruppo", "codice", "gruppo", "code"),
     "group_contact": ("referente gruppo", "referente", "group contact"),
@@ -51,6 +56,18 @@ def parse_volunteer(value: object) -> Volunteer | None:
         name=match.group("name").strip(),
         phone=match.group("phone").strip(),
     )
+
+
+def parse_volunteers(value: object) -> tuple[Volunteer, ...]:
+    raw = _clean(value)
+    if not raw:
+        return ()
+    volunteers = [
+        volunteer
+        for part in _VOLUNTEER_SEPARATOR_RE.split(raw)
+        if (volunteer := parse_volunteer(part)) is not None
+    ]
+    return tuple(volunteers)
 
 
 def _find_date_columns(header_row: Sequence[object]) -> list[int]:
@@ -149,10 +166,10 @@ def read_appointments(path: str | Path) -> list[Appointment]:
             assignments = [
                 DayAssignment(
                     date_label=date_label,
-                    morning=parse_volunteer(
+                    morning=parse_volunteers(
                         row[morning] if morning < len(row) else None
                     ),
-                    afternoon=parse_volunteer(
+                    afternoon=parse_volunteers(
                         row[afternoon] if afternoon < len(row) else None
                     ),
                     note=_clean(row[note]) if note < len(row) else "",

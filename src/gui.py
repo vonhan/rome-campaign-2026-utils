@@ -11,11 +11,12 @@ class App(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
         self.title("Generatore appuntamenti Roma 2026")
-        self.geometry("650x300")
-        self.minsize(590, 280)
+        self.geometry("700x430")
+        self.minsize(620, 360)
 
         self.input_var = tk.StringVar()
         self.output_var = tk.StringVar()
+        self.mode_var = tk.StringVar(value="delegato")
         self.status_var = tk.StringVar(
             value="Seleziona il file Excel e la cartella di destinazione."
         )
@@ -29,8 +30,8 @@ class App(tk.Tk):
         ).pack(anchor="w")
         ttk.Label(
             container,
-            text="Verrà creato un PDF per ogni riga del file Excel.",
-        ).pack(anchor="w", pady=(2, 14))
+            text="Scegli il tipo di output da generare e l'Excel da elaborare.",
+        ).pack(anchor="w", pady=(2, 12))
 
         self._path_row(
             container,
@@ -45,16 +46,29 @@ class App(tk.Tk):
             self.choose_output,
         )
 
+        mode_frame = ttk.LabelFrame(container, text="Tipo di generazione")
+        mode_frame.pack(fill="x", pady=(12, 10))
+        for label, value in (
+            ("Appuntamenti per capogruppo Delegato", "delegato"),
+            ("Appuntamenti per capogruppo Volontario", "volontario"),
+        ):
+            ttk.Radiobutton(
+                mode_frame,
+                text=label,
+                variable=self.mode_var,
+                value=value,
+            ).pack(anchor="w", padx=12, pady=3)
+
         self.generate_button = ttk.Button(
             container,
             text="Genera PDF",
             command=self.generate,
         )
-        self.generate_button.pack(pady=(16, 8), ipadx=24, ipady=6)
+        self.generate_button.pack(pady=(8, 8), ipadx=24, ipady=6)
         ttk.Label(
             container,
             textvariable=self.status_var,
-            wraplength=590,
+            wraplength=620,
             justify="center",
         ).pack()
 
@@ -106,17 +120,24 @@ class App(tk.Tk):
         self.status_var.set("Generazione in corso…")
         self.update_idletasks()
         try:
-            result = generate_documents(source, output)
+            mode = self.mode_var.get()
+            result = generate_documents(source, output, mode=mode)
         except (OSError, ValueError) as exc:
             self.status_var.set("Generazione non completata.")
             messagebox.showerror("Impossibile generare i PDF", str(exc))
         else:
+            subject = (
+                "capogruppo delegato"
+                if self.mode_var.get() == "delegato"
+                else "capogruppo volontario"
+            )
             self.status_var.set(
-                f"Completato: {len(result.appointment_files)} PDF generati."
+                f"Completato: {len(result.appointment_files)} PDF per "
+                f"{subject} generati."
             )
             messagebox.showinfo(
                 "Generazione completata",
-                f"Creati {len(result.appointment_files)} PDF di appuntamento "
+                f"Creati {len(result.appointment_files)} PDF per {subject} "
                 f"e la guida in:\n{Path(output)}",
             )
         finally:
