@@ -129,3 +129,22 @@ def test_appointment_pdf_renders_with_campaign_logo(tmp_path: Path) -> None:
     assert len(reader.pages) == 1
     assert output.stat().st_size > 0
     assert "Campagna Speciale Roma 2026" in _pdf_text(output)
+
+
+def test_documents_keep_their_own_titles(tmp_path: Path) -> None:
+    appointment = Appointment(
+        group_code="TITOLI-01",
+        assignments=[DayAssignment(date_label="26/10")],
+        source_row_number=3,
+    )
+    appointment_pdf = tmp_path / "appointment.pdf"
+    guide_pdf = tmp_path / "guide.pdf"
+    logo = Path("assets/icon.png")
+
+    write_appointment_pdf(appointment, appointment_pdf, logo)
+    write_user_guide_pdf(guide_pdf, logo)
+
+    appointment_title = PdfReader(appointment_pdf).metadata.title
+    guide_title = PdfReader(guide_pdf).metadata.title
+    assert appointment_title == "Campagna Speciale Roma 2026 - Appuntamento TITOLI-01"
+    assert guide_title == "Campagna Speciale Roma 2026 - Guida all'uso"

@@ -178,7 +178,6 @@ def _styles() -> dict[str, ParagraphStyle]:
 
 def _page_footer(canvas: Canvas, document: SimpleDocTemplate) -> None:
     canvas.saveState()
-    canvas.setTitle(f"{CAMPAIGN_TITLE} - Appuntamento di servizio")
     canvas.setFont("Helvetica", 8)
     canvas.setFillColor(_MUTED)
     canvas.drawString(15 * mm, 8 * mm, CAMPAIGN_TITLE)
