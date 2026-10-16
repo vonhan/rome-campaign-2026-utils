@@ -45,3 +45,15 @@ def test_missing_logo_is_reported(
             tmp_path / "out",
             tmp_path / "missing.png",
         )
+
+
+def test_generated_filename_contains_group_and_unique_volunteer_names(
+    tmp_path: Path, synthetic_workbook
+) -> None:
+    workbook = synthetic_workbook(tmp_path / "input.xlsx")
+
+    result = service.generate_documents(workbook, tmp_path / "out", "assets/icon.png")
+
+    assert result.appointment_files[0].name == (
+        "Appuntamento-RM-01-ROSSI-MARIO-VERDI-ANNA-BIANCHI-LUCA-riga-3.pdf"
+    )

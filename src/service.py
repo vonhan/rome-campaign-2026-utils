@@ -8,6 +8,7 @@ from pathlib import Path
 
 from src.excel_parser import read_appointments
 from src.pdf_generator import write_appointment_pdf, write_user_guide_pdf
+from src.models import Appointment
 from src.resources import resource_path
 
 
@@ -21,6 +22,27 @@ def _safe_filename(value: str) -> str:
     cleaned = re.sub(r"[^\w -]", "_", value, flags=re.UNICODE)
     cleaned = re.sub(r"[\s_-]+", "-", cleaned).strip("-")
     return cleaned or "senza-codice"
+
+
+def _volunteer_filename_part(appointment: Appointment) -> str:
+    names: list[str] = []
+    for assignment in appointment.assignments:
+        for volunteer in (assignment.morning, assignment.afternoon):
+            if volunteer is None:
+                continue
+            name = volunteer.display_name
+            if name not in names:
+                names.append(name)
+    return "-".join(_safe_filename(name) for name in names)
+
+
+def _appointment_filename(appointment: Appointment) -> str:
+    group = _safe_filename(appointment.group_code)
+    volunteers = _volunteer_filename_part(appointment)
+    prefix = f"Appuntamento-{group}" + (f"-{volunteers}" if volunteers else "")
+    suffix = f"-riga-{appointment.source_row_number}.pdf"
+    max_stem_length = 180 - len(suffix)
+    return f"{prefix[:max_stem_length].rstrip('-')}{suffix}"
 
 
 def default_logo_path() -> Path:
@@ -52,8 +74,7 @@ def generate_documents(
         )
 
     final_names = [
-        f"Appuntamento-{_safe_filename(appointment.group_code)}"
-        f"-riga-{appointment.source_row_number}.pdf"
+        _appointment_filename(appointment)
         for appointment in appointments
     ]
     guide_name = "Guida-uso.pdf"

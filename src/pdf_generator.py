@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from html import escape
+from io import BytesIO
 from pathlib import Path
 
 from reportlab.graphics.shapes import Circle, Drawing, Line, Polygon, Rect
@@ -180,8 +181,9 @@ def write_appointment_pdf(
     output_file = Path(output_path)
     output_file.parent.mkdir(parents=True, exist_ok=True)
     styles = _styles()
+    pdf_buffer = BytesIO()
     document = SimpleDocTemplate(
-        str(output_file),
+        pdf_buffer,
         pagesize=A4,
         rightMargin=14 * mm,
         leftMargin=14 * mm,
@@ -299,6 +301,7 @@ def write_appointment_pdf(
     story.append(assignments_table)
 
     document.build(story, onFirstPage=_page_footer, onLaterPages=_page_footer)
+    output_file.write_bytes(pdf_buffer.getvalue())
     return output_file
 
 
@@ -308,8 +311,9 @@ def write_user_guide_pdf(
     output_file = Path(output_path)
     output_file.parent.mkdir(parents=True, exist_ok=True)
     styles = _styles()
+    pdf_buffer = BytesIO()
     document = SimpleDocTemplate(
-        str(output_file),
+        pdf_buffer,
         pagesize=A4,
         rightMargin=18 * mm,
         leftMargin=18 * mm,
@@ -412,4 +416,5 @@ def write_user_guide_pdf(
         ),
     ]
     document.build(story, onFirstPage=_page_footer, onLaterPages=_page_footer)
+    output_file.write_bytes(pdf_buffer.getvalue())
     return output_file
