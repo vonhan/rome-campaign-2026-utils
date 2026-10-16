@@ -10,10 +10,12 @@ htmlcov/
 *.egg-info/
 dist/
 build/
-*.spec
+release/
 .DS_Store
 output/
 *.log
 
 # Keep the campaign spreadsheet out of version control.
 assets/Abbinamenti DEF.xlsx
+assets/*.xlsx
+!tests/fixtures/*.xlsx

@@ -1,10 +1,24 @@
 [project]
 name = "rome-campaign-2026-utils"
-version = "0.1.0"
-description = "Generate appointment PDFs for Rome 2026 campaign services"
+version = "1.0.0"
+description = "Generatore PDF per gli appuntamenti della campagna Roma 2026"
 readme = "README.md"
 requires-python = ">=3.11"
+dependencies = [
+    "openpyxl>=3.1.5,<4",
+    "reportlab>=4.2,<5",
+]
+
+[project.optional-dependencies]
+test = [
+    "pypdf>=5.0,<7",
+    "pytest>=8.0,<10",
+]
+build = [
+    "pyinstaller>=6.0,<7",
+]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
+addopts = "-ra --strict-markers"

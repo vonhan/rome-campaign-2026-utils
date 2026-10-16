@@ -1,133 +1,171 @@
 from __future__ import annotations
 
 import re
+from zipfile import BadZipFile
 from pathlib import Path
-from typing import Iterable, List, Sequence
+from typing import Sequence
 
 from openpyxl import load_workbook
+from openpyxl.utils.exceptions import InvalidFileException
 
-from src.models import Appointment, DayAssignment
-
-
-_DATE_RE = re.compile(r"^\d{1,2}/\d{1,2}")
+from src.models import Appointment, DayAssignment, Volunteer
 
 
-def _clean(value):
+_DATE_RE = re.compile(r"^\d{1,2}/\d{1,2}(?:\s|$)")
+_VOLUNTEER_RE = re.compile(
+    r"^\s*(?P<surname>[^,:]+?)\s*,\s*(?P<name>[^:]+?)\s*:\s*(?P<phone>.+?)\s*$"
+)
+_FIELD_ALIASES = {
+    "group_code": ("codice gruppo", "codice", "gruppo", "code"),
+    "group_contact": ("referente gruppo", "referente", "group contact"),
+    "kingdom_hall": ("sala del regno", "sala", "regno", "kingdom hall"),
+    "guest_count": ("n ospiti", "numero ospiti", "ospiti", "guests"),
+    "guest_vehicle": ("auto ospiti", "auto", "veicolo ospiti", "car"),
+}
+
+
+def _clean(value: object) -> str:
     if value is None:
         return ""
-    if isinstance(value, str):
-        return value.strip()
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
     return str(value).strip()
 
 
-def _normalize_header(value: str) -> str:
-    return re.sub(r"\s+", " ", _clean(value)).lower().replace(".", "").replace("_", " ")
+def _normalize_header(value: object) -> str:
+    text = _clean(value).lower().replace("_", " ")
+    text = re.sub(r"[^\w\s]", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
 
 
-def _detect_date_columns(header_row: Sequence[object], second_row: Sequence[object] | None = None) -> list[int]:
-    columns: list[int] = []
-    for idx, value in enumerate(header_row):
-        text = _clean(value)
-        if not text:
-            continue
-        if _DATE_RE.match(text):
-            columns.append(idx)
-    return columns
+def parse_volunteer(value: object) -> Volunteer | None:
+    raw = re.sub(r"\s+", " ", _clean(value))
+    if not raw:
+        return None
+    match = _VOLUNTEER_RE.match(raw)
+    if not match:
+        return Volunteer(raw=raw)
+    return Volunteer(
+        raw=raw,
+        surname=match.group("surname").strip(),
+        name=match.group("name").strip(),
+        phone=match.group("phone").strip(),
+    )
 
 
-def _resolve_assigned_columns(date_col: int, second_row: Sequence[object]) -> tuple[int, int, int]:
-    window_start = max(0, date_col - 1)
-    window_end = min(len(second_row), date_col + 4)
-    candidates = list(enumerate(second_row[window_start:window_end], start=window_start))
-    morning_col = next((idx for idx, value in candidates if _normalize_header(_clean(value)).startswith("mattina")), date_col)
-    afternoon_col = next((idx for idx, value in candidates if _normalize_header(_clean(value)).startswith("pomeriggio") and idx > morning_col), date_col + 1)
-    note_col = next((idx for idx, value in candidates if _normalize_header(_clean(value)).startswith("note") and idx > afternoon_col), date_col + 2)
-    return morning_col, afternoon_col, note_col
+def _find_date_columns(header_row: Sequence[object]) -> list[int]:
+    return [
+        index
+        for index, value in enumerate(header_row)
+        if _DATE_RE.match(_clean(value))
+    ]
 
 
-def _field_index(header_row: Sequence[object]) -> dict[str, int]:
-    index: dict[str, int] = {}
-    for pos, value in enumerate(header_row):
-        key = _normalize_header(value)
-        if key:
-            index[key] = pos
-    return index
+def _find_base_columns(header_row: Sequence[object]) -> dict[str, int]:
+    normalized = [_normalize_header(value) for value in header_row]
+    result: dict[str, int] = {}
+    missing: list[str] = []
+    for field, aliases in _FIELD_ALIASES.items():
+        index = next(
+            (position for position, value in enumerate(normalized) if value in aliases),
+            None,
+        )
+        if index is None:
+            missing.append(aliases[0])
+        else:
+            result[field] = index
+    if missing:
+        raise ValueError(
+            "Intestazioni obbligatorie mancanti: " + ", ".join(missing) + "."
+        )
+    return result
 
 
-def _extract_field(row: Sequence[object], header_index: dict[str, int], *names: str) -> str:
-    for name in names:
-        pos = header_index.get(name)
-        if pos is not None and pos < len(row):
-            text = _clean(row[pos])
-            if text:
-                return text
-    return ""
-
-
-def _parse_volunteer(value: str) -> str:
-    render = _clean(value)
-    if not render:
-        return ""
-    return render.replace("\n", " ")
+def _find_assignment_columns(
+    second_row: Sequence[object], start: int, end: int, date_label: str
+) -> tuple[int, int, int]:
+    block = {
+        _normalize_header(second_row[index]): index
+        for index in range(start, min(end, len(second_row)))
+        if _normalize_header(second_row[index])
+    }
+    morning = block.get("mattina")
+    afternoon = block.get("pomeriggio")
+    note = block.get("note")
+    if morning is None or afternoon is None or note is None:
+        raise ValueError(
+            f"Il blocco del {date_label} deve contenere Mattina, Pomeriggio e NOTE."
+        )
+    return morning, afternoon, note
 
 
 def read_appointments(path: str | Path) -> list[Appointment]:
-    workbook = load_workbook(path, read_only=True, data_only=True)
-    worksheet = workbook.active
-    rows = list(worksheet.iter_rows(values_only=True))
-    if not rows:
-        raise ValueError("The workbook is empty.")
+    workbook_path = Path(path)
+    if workbook_path.suffix.lower() != ".xlsx":
+        raise ValueError("Selezionare un file Excel con estensione .xlsx.")
 
-    header_row = rows[0]
-    second_row = rows[1] if len(rows) > 1 else []
-    date_columns = _detect_date_columns(header_row, second_row)
-    if not date_columns:
-        raise ValueError("No date column blocks detected. Check the workbook layout.")
+    try:
+        workbook = load_workbook(workbook_path, read_only=True, data_only=True)
+    except (OSError, ValueError, BadZipFile, InvalidFileException) as exc:
+        raise ValueError(f"Impossibile leggere il file Excel: {exc}") from exc
 
-    header_index = _field_index(header_row)
-    appointments: list[Appointment] = []
+    try:
+        worksheet = workbook.active
+        rows = list(worksheet.iter_rows(values_only=True))
+        if len(rows) < 2:
+            raise ValueError("Il file Excel non contiene le due righe di intestazione.")
 
-    for row_number, row in enumerate(rows[2:], start=3):
-        if not row or all(_clean(cell) == "" for cell in row):
-            continue
-
-        if any(_normalize_header(_clean(cell)).startswith("mattina") or _normalize_header(_clean(cell)).startswith("pomeriggio") or _normalize_header(_clean(cell)).startswith("note") for cell in row):
-            continue
-
-        record = Appointment(
-            code=_extract_field(row, header_index, "codice", "code", "n", "n.", "id"),
-            group=_extract_field(row, header_index, "gruppo", "group"),
-            referente_gruppo=_extract_field(row, header_index, "referente gruppo", "referente", "referentegruppo"),
-            regno=_extract_field(row, header_index, "regno", "regione", "territorio"),
-            auto=_extract_field(row, header_index, "auto", "car"),
-            ospiti=_extract_field(row, header_index, "ospiti", "guests", "delegati"),
-            source_row_number=row_number,
-        )
-
-        for date_col in date_columns:
-            morning_col, afternoon_col, note_col = _resolve_assigned_columns(date_col, second_row)
-            if morning_col >= len(row) or afternoon_col >= len(row) or note_col >= len(row):
-                continue
-
-            morning = _parse_volunteer(_clean(row[morning_col]))
-            afternoon = _parse_volunteer(_clean(row[afternoon_col]))
-            note = _clean(row[note_col])
-            date_label = _clean(header_row[date_col])
-
-            if not date_label and not morning and not afternoon and not note:
-                continue
-
-            record.assignments.append(
-                DayAssignment(
-                    date_label=date_label,
-                    morning=morning,
-                    afternoon=afternoon,
-                    note=note,
-                )
+        header_row = rows[0]
+        second_row = rows[1]
+        base_columns = _find_base_columns(header_row)
+        date_columns = _find_date_columns(header_row)
+        if not date_columns:
+            raise ValueError(
+                "Nessun blocco data trovato nella prima riga di intestazione."
             )
 
-        if record.assignments or record.code or record.group or record.referente_gruppo:
-            appointments.append(record)
+        assignment_columns: list[tuple[str, int, int, int]] = []
+        for position, date_column in enumerate(date_columns):
+            block_end = (
+                date_columns[position + 1]
+                if position + 1 < len(date_columns)
+                else len(header_row)
+            )
+            date_label = _clean(header_row[date_column])
+            columns = _find_assignment_columns(
+                second_row, date_column, block_end, date_label
+            )
+            assignment_columns.append((date_label, *columns))
 
-    workbook.close()
-    return appointments
+        appointments: list[Appointment] = []
+        for row_number, row in enumerate(rows[2:], start=3):
+            base_values = {
+                field: _clean(row[index]) if index < len(row) else ""
+                for field, index in base_columns.items()
+            }
+            if not any(base_values.values()):
+                continue
+
+            assignments = [
+                DayAssignment(
+                    date_label=date_label,
+                    morning=parse_volunteer(
+                        row[morning] if morning < len(row) else None
+                    ),
+                    afternoon=parse_volunteer(
+                        row[afternoon] if afternoon < len(row) else None
+                    ),
+                    note=_clean(row[note]) if note < len(row) else "",
+                )
+                for date_label, morning, afternoon, note in assignment_columns
+            ]
+            appointments.append(
+                Appointment(
+                    **base_values,
+                    assignments=assignments,
+                    source_row_number=row_number,
+                )
+            )
+        return appointments
+    finally:
+        workbook.close()

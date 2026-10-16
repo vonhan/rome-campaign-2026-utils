@@ -1,45 +1,92 @@
 from __future__ import annotations
 
-import os
 import tkinter as tk
 from pathlib import Path
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, messagebox, ttk
 
-from src.excel_parser import read_appointments
-from src.pdf_generator import write_appointment_pdf, write_user_guide_pdf
+from src.service import generate_documents
 
 
 class App(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
-        self.title("Generatore PDF appuntamenti Roma 2026")
-        self.geometry("560x240")
-        self.minsize(520, 220)
+        self.title("Generatore appuntamenti Roma 2026")
+        self.geometry("650x300")
+        self.minsize(590, 280)
 
         self.input_var = tk.StringVar()
         self.output_var = tk.StringVar()
+        self.status_var = tk.StringVar(
+            value="Seleziona il file Excel e la cartella di destinazione."
+        )
 
-        tk.Label(self, text="File Excel (.xlsx):", anchor="w").pack(fill="x", padx=12, pady=(12, 0))
-        frame_input = tk.Frame(self)
-        frame_input.pack(fill="x", padx=12, pady=4)
-        tk.Entry(frame_input, textvariable=self.input_var, width=70).pack(side="left", fill="x", expand=True)
-        tk.Button(frame_input, text="Sfoglia", command=self.choose_input).pack(side="left", padx=(8, 0))
+        container = ttk.Frame(self, padding=18)
+        container.pack(fill="both", expand=True)
+        ttk.Label(
+            container,
+            text="Generatore PDF appuntamenti",
+            font=("Segoe UI", 17, "bold"),
+        ).pack(anchor="w")
+        ttk.Label(
+            container,
+            text="Verrà creato un PDF per ogni riga del file Excel.",
+        ).pack(anchor="w", pady=(2, 14))
 
-        tk.Label(self, text="Cartella destinazione PDF:", anchor="w").pack(fill="x", padx=12, pady=(8, 0))
-        frame_output = tk.Frame(self)
-        frame_output.pack(fill="x", padx=12, pady=4)
-        tk.Entry(frame_output, textvariable=self.output_var, width=70).pack(side="left", fill="x", expand=True)
-        tk.Button(frame_output, text="Sfoglia", command=self.choose_output).pack(side="left", padx=(8, 0))
+        self._path_row(
+            container,
+            "File Excel (.xlsx)",
+            self.input_var,
+            self.choose_input,
+        )
+        self._path_row(
+            container,
+            "Cartella di destinazione",
+            self.output_var,
+            self.choose_output,
+        )
 
-        tk.Button(self, text="Genera PDF", command=self.generate, width=20, height=2, bg="#dfefff").pack(pady=(16, 8))
+        self.generate_button = ttk.Button(
+            container,
+            text="Genera PDF",
+            command=self.generate,
+        )
+        self.generate_button.pack(pady=(16, 8), ipadx=24, ipady=6)
+        ttk.Label(
+            container,
+            textvariable=self.status_var,
+            wraplength=590,
+            justify="center",
+        ).pack()
+
+    def _path_row(
+        self,
+        parent: ttk.Frame,
+        label: str,
+        variable: tk.StringVar,
+        command: object,
+    ) -> None:
+        ttk.Label(parent, text=label).pack(fill="x", pady=(5, 2))
+        row = ttk.Frame(parent)
+        row.pack(fill="x")
+        ttk.Entry(row, textvariable=variable).pack(
+            side="left", fill="x", expand=True
+        )
+        ttk.Button(row, text="Sfoglia…", command=command).pack(
+            side="left", padx=(8, 0)
+        )
 
     def choose_input(self) -> None:
-        file_path = filedialog.askopenfilename(filetypes=[("Excel", "*.xlsx")])
+        file_path = filedialog.askopenfilename(
+            title="Seleziona il file degli appuntamenti",
+            filetypes=[("File Excel", "*.xlsx")],
+        )
         if file_path:
             self.input_var.set(file_path)
 
     def choose_output(self) -> None:
-        folder = filedialog.askdirectory()
+        folder = filedialog.askdirectory(
+            title="Seleziona la cartella di destinazione"
+        )
         if folder:
             self.output_var.set(folder)
 
@@ -47,25 +94,33 @@ class App(tk.Tk):
         source = self.input_var.get().strip()
         output = self.output_var.get().strip()
         if not source:
-            messagebox.showerror("Errore", "Selezionare un file Excel.")
+            messagebox.showerror("File mancante", "Seleziona un file Excel.")
             return
         if not output:
-            messagebox.showerror("Errore", "Selezionare una cartella di destinazione.")
+            messagebox.showerror(
+                "Cartella mancante", "Seleziona una cartella di destinazione."
+            )
             return
 
+        self.generate_button.configure(state="disabled")
+        self.status_var.set("Generazione in corso…")
+        self.update_idletasks()
         try:
-            appointments = read_appointments(source)
-            out_dir = Path(output)
-            out_dir.mkdir(parents=True, exist_ok=True)
-            for appointment in appointments:
-                file_name = f"{appointment.group or appointment.code or appointment.source_row_number}.pdf"
-                safe_name = "".join(ch if ch.isalnum() or ch in (" ", "_", "-", ".") else "_" for ch in file_name).strip()
-                write_appointment_pdf(appointment, out_dir / safe_name, os.path.join(os.getcwd(), "assets", "icon.png"))
-            guide_target = out_dir / "Guida-uso.pdf"
-            write_user_guide_pdf(guide_target, os.path.join(os.getcwd(), "assets", "icon.png"))
-            messagebox.showinfo("Completato", f"Generati {len(appointments)} PDF in:\n{out_dir}")
-        except Exception as exc:  # pragma: no cover - gui error path
-            messagebox.showerror("Errore", str(exc))
+            result = generate_documents(source, output)
+        except (OSError, ValueError) as exc:
+            self.status_var.set("Generazione non completata.")
+            messagebox.showerror("Impossibile generare i PDF", str(exc))
+        else:
+            self.status_var.set(
+                f"Completato: {len(result.appointment_files)} PDF generati."
+            )
+            messagebox.showinfo(
+                "Generazione completata",
+                f"Creati {len(result.appointment_files)} PDF di appuntamento "
+                f"e la guida in:\n{Path(output)}",
+            )
+        finally:
+            self.generate_button.configure(state="normal")
 
 
 def launch_gui() -> None:
