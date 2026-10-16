@@ -45,7 +45,8 @@ jobs:
           if (-not (Test-Path (Join-Path $release "Guida-uso.pdf"))) {
             throw "La guida PDF non è stata generata."
           }
-          tar.exe -a -c -f $zip -C $release .
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          [System.IO.Compression.ZipFile]::CreateFromDirectory($release, $zip)
           if (-not (Test-Path -LiteralPath $zip)) {
             throw "Il pacchetto ZIP non è stato generato: $zip"
           }
