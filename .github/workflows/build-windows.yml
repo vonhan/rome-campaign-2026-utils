@@ -35,23 +35,54 @@ jobs:
       - name: Verifica l'eseguibile e genera la guida
         shell: pwsh
         run: |
+          $ErrorActionPreference = "Stop"
           $release = Join-Path $env:GITHUB_WORKSPACE "release"
           New-Item -ItemType Directory -Force -Path $release | Out-Null
           Copy-Item build-output/RomeCampaignPDF.exe $release
           Copy-Item README.md $release
-          & build-output/RomeCampaignPDF.exe --guide-only (Join-Path $release "Guida-uso.pdf")
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          if (-not (Test-Path (Join-Path $release "Guida-uso.pdf"))) {
+          $guida = Join-Path $release "Guida-uso.pdf"
+          # L'eseguibile è compilato con console=False (GUI subsystem): l'operatore `&`
+          # non ne attenderebbe la fine e lascerebbe $LASTEXITCODE a $null, facendo
+          # uscire lo script con successo prima degli step successivi.
+          $processo = Start-Process `
+            -FilePath (Join-Path $env:GITHUB_WORKSPACE "build-output\RomeCampaignPDF.exe") `
+            -ArgumentList "--guide-only", $guida `
+            -Wait -PassThru -NoNewWindow
+          if ($processo.ExitCode -ne 0) {
+            throw "L'eseguibile ha restituito il codice di uscita $($processo.ExitCode)."
+          }
+          if (-not (Test-Path -LiteralPath $guida)) {
             throw "La guida PDF non è stata generata."
           }
-          $hash = Get-FileHash (Join-Path $release "RomeCampaignPDF.exe") -Algorithm SHA256
-          $checksumPath = Join-Path $release "SHA256SUMS.txt"
-          Set-Content -Path $checksumPath -Value "$($hash.Hash)  RomeCampaignPDF.exe" -Encoding ascii
-          if (-not (Test-Path -LiteralPath $checksumPath)) {
-            throw "Il file SHA256SUMS.txt non è stato generato."
+          Write-Host "Guida generata correttamente: $guida"
+
+      - name: Genera il checksum SHA256
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $release = Join-Path $env:GITHUB_WORKSPACE "release"
+          $hash = Get-FileHash -LiteralPath (Join-Path $release "RomeCampaignPDF.exe") -Algorithm SHA256
+          $checksum = Join-Path $release "SHA256SUMS.txt"
+          Set-Content -LiteralPath $checksum -Value "$($hash.Hash)  RomeCampaignPDF.exe" -Encoding ascii
+          Get-Content -LiteralPath $checksum
+
+      - name: Verifica il contenuto del pacchetto
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $release = Join-Path $env:GITHUB_WORKSPACE "release"
+          $attesi = @("Guida-uso.pdf", "README.md", "RomeCampaignPDF.exe", "SHA256SUMS.txt")
+          $presenti = @(Get-ChildItem -LiteralPath $release -File | ForEach-Object { $_.Name })
+          Get-ChildItem -LiteralPath $release -File | Format-Table Name, Length
+          $mancanti = @($attesi | Where-Object { $presenti -notcontains $_ })
+          if ($mancanti.Count -gt 0) {
+            throw "File mancanti nel pacchetto: $($mancanti -join ', ')"
           }
-          Get-Content -LiteralPath $checksumPath
-          Get-ChildItem -LiteralPath $release -File | Format-Table Name,Length
+          $vuoti = @(Get-ChildItem -LiteralPath $release -File | Where-Object { $_.Length -eq 0 })
+          if ($vuoti.Count -gt 0) {
+            throw "File vuoti nel pacchetto: $($vuoti.Name -join ', ')"
+          }
+          Write-Host "Pacchetto completo: $($attesi.Count) file verificati."
 
       - name: Pubblica il pacchetto
         uses: actions/upload-artifact@v4
