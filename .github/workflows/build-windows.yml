@@ -45,7 +45,12 @@ jobs:
             throw "La guida PDF non è stata generata."
           }
           $hash = Get-FileHash (Join-Path $release "RomeCampaignPDF.exe") -Algorithm SHA256
-          "$($hash.Hash)  RomeCampaignPDF.exe" | Set-Content -Encoding ascii (Join-Path $release "SHA256SUMS.txt")
+          $checksumPath = Join-Path $release "SHA256SUMS.txt"
+          Set-Content -Path $checksumPath -Value "$($hash.Hash)  RomeCampaignPDF.exe" -Encoding ascii
+          if (-not (Test-Path -LiteralPath $checksumPath)) {
+            throw "Il file SHA256SUMS.txt non è stato generato."
+          }
+          Get-Content -LiteralPath $checksumPath
           Get-ChildItem -LiteralPath $release -File | Format-Table Name,Length
 
       - name: Pubblica il pacchetto
