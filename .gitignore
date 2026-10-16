@@ -1,0 +1,19 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+.venv
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+dist/
+build/
+*.spec
+.DS_Store
+output/
+*.log
+
+# Keep the campaign spreadsheet out of version control.
+assets/Abbinamenti DEF.xlsx

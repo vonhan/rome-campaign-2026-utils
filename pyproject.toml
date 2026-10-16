@@ -1,0 +1,10 @@
+[project]
+name = "rome-campaign-2026-utils"
+version = "0.1.0"
+description = "Generate appointment PDFs for Rome 2026 campaign services"
+readme = "README.md"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
