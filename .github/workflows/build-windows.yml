@@ -36,7 +36,6 @@ jobs:
         shell: pwsh
         run: |
           $release = Join-Path $env:GITHUB_WORKSPACE "release"
-          $zip = Join-Path $env:GITHUB_WORKSPACE "RomeCampaignPDF-Windows.zip"
           New-Item -ItemType Directory -Force -Path $release | Out-Null
           Copy-Item build-output/RomeCampaignPDF.exe $release
           Copy-Item README.md $release
@@ -45,19 +44,12 @@ jobs:
           if (-not (Test-Path (Join-Path $release "Guida-uso.pdf"))) {
             throw "La guida PDF non è stata generata."
           }
-          $env:ROME_RELEASE_DIR = $release
-          $env:ROME_ZIP_BASE = Join-Path $env:GITHUB_WORKSPACE "RomeCampaignPDF-Windows"
-          python -c "import os, shutil; print(shutil.make_archive(os.environ['ROME_ZIP_BASE'], 'zip', os.environ['ROME_RELEASE_DIR']))"
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          if (-not (Test-Path -LiteralPath $zip)) {
-            throw "Il pacchetto ZIP non è stato generato: $zip"
-          }
-          Get-Item -LiteralPath $zip | Format-List FullName,Length
+          Get-ChildItem -LiteralPath $release -File | Format-Table Name,Length
 
       - name: Pubblica il pacchetto
         uses: actions/upload-artifact@v4
         with:
           name: RomeCampaignPDF-Windows
-          path: RomeCampaignPDF-Windows.zip
+          path: release
           if-no-files-found: error
           retention-days: 30

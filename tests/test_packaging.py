@@ -10,7 +10,6 @@ def test_windows_packaging_includes_logo_tests_and_guide_smoke_check() -> None:
     assert '("assets/icon.png", "assets")' in spec
     assert "python -m pytest" in workflow
     assert "--guide-only (Join-Path $release" in workflow
-    assert "path: RomeCampaignPDF-Windows.zip" in workflow
-    assert "RomeCampaignPDF-Windows.zip" in workflow
-    assert "shutil.make_archive" in workflow
+    assert "path: release" in workflow
+    assert "name: RomeCampaignPDF-Windows" in workflow
     assert "actions/upload-artifact@v4" in workflow
