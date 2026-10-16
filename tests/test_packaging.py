@@ -12,5 +12,5 @@ def test_windows_packaging_includes_logo_tests_and_guide_smoke_check() -> None:
     assert "--guide-only (Join-Path $release" in workflow
     assert "path: RomeCampaignPDF-Windows.zip" in workflow
     assert "RomeCampaignPDF-Windows.zip" in workflow
-    assert "ZipFile]::CreateFromDirectory($release, $zip)" in workflow
+    assert "shutil.make_archive" in workflow
     assert "actions/upload-artifact@v4" in workflow

@@ -45,8 +45,8 @@ jobs:
           if (-not (Test-Path (Join-Path $release "Guida-uso.pdf"))) {
             throw "La guida PDF non è stata generata."
           }
-          Add-Type -AssemblyName System.IO.Compression.FileSystem
-          [System.IO.Compression.ZipFile]::CreateFromDirectory($release, $zip)
+          python -c "import shutil; shutil.make_archive(r'$($env:GITHUB_WORKSPACE)\RomeCampaignPDF-Windows', 'zip', r'$release')"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           if (-not (Test-Path -LiteralPath $zip)) {
             throw "Il pacchetto ZIP non è stato generato: $zip"
           }
