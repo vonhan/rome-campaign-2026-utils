@@ -98,11 +98,11 @@ def test_generate_documents_can_group_by_volunteer(
                 "Sala A",
                 4,
                 "Auto A",
-                "ROSSI, MARIO: 111",
+                "ROSSI MARIO 111",
                 "",
                 "Note primo appuntamento",
-                "ROSSI, MARIO: 111",
-                "VERDI, ANNA: 222",
+                "ROSSI MARIO 111",
+                "VERDI ANNA 222",
                 "Note secondo appuntamento",
             ],
             [
@@ -111,11 +111,11 @@ def test_generate_documents_can_group_by_volunteer(
                 "Sala B",
                 3,
                 "Auto B",
-                "VERDI, ANNA: 222",
+                "VERDI ANNA 222",
                 "",
                 "Note terzo appuntamento",
                 "",
-                "ROSSI, MARIO: 111",
+                "ROSSI MARIO 111",
                 "Note quarto appuntamento",
             ],
         ],
@@ -148,8 +148,8 @@ def test_volunteer_pdf_contains_complete_appointment_without_counterpart(
                 "Sala Test Completa",
                 7,
                 "Auto Ospiti Completa",
-                "ROSSI, MARIO: 111",
-                "VERDI, ANNA: 222",
+                "ROSSI MARIO 111",
+                "VERDI ANNA 222",
                 "Nota completa mattina",
                 "",
                 "",
@@ -193,7 +193,7 @@ def test_volunteer_identity_normalizes_case_and_spaces_but_not_phone(
                 "Sala A",
                 1,
                 "Auto A",
-                "ROSSI, MARIO: 111",
+                "ROSSI MARIO 111",
                 "",
                 "Prima occorrenza",
                 "",
@@ -206,7 +206,7 @@ def test_volunteer_identity_normalizes_case_and_spaces_but_not_phone(
                 "Sala B",
                 2,
                 "Auto B",
-                "  rossi,   mario: 1 11  ",
+                "  rossi   mario 111  ",
                 "",
                 "Seconda occorrenza",
                 "",
@@ -219,7 +219,7 @@ def test_volunteer_identity_normalizes_case_and_spaces_but_not_phone(
                 "Sala C",
                 3,
                 "Auto C",
-                "ROSSI, MARIO: 222",
+                "ROSSI MARIO 222",
                 "",
                 "Omonimo differente",
                 "",
@@ -283,9 +283,9 @@ def test_multiple_volunteers_in_one_slot_receive_separate_pdfs(
                 5,
                 "Auto Condivisa",
                 (
-                    "Rossi, Mario: 0000000001 e "
-                    "Verdi, Paolo: 0000000002 e "
-                    "Bianchi, Luca: 0000000003"
+                    "Rossi Mario 0000000001; "
+                    "Verdi Paolo 0000000002; "
+                    "Bianchi Luca 0000000003"
                 ),
                 "",
                 "Appuntamento condiviso",
@@ -323,12 +323,12 @@ def test_multiple_volunteers_in_one_slot_receive_separate_pdfs(
     bianchi_text = _pdf_text(
         next(path for path in result.appointment_files if "Bianchi-Luca" in path.name)
     )
-    assert "Verdi, Paolo: 0000000002" in rossi_text
-    assert "Bianchi, Luca: 0000000003" in rossi_text
-    assert "Rossi, Mario: 0000000001" in verdi_text
-    assert "Bianchi, Luca: 0000000003" in verdi_text
-    assert "Rossi, Mario: 0000000001" in bianchi_text
-    assert "Verdi, Paolo: 0000000002" in bianchi_text
+    assert "Verdi Paolo 0000000002" in rossi_text
+    assert "Bianchi Luca 0000000003" in rossi_text
+    assert "Rossi Mario 0000000001" in verdi_text
+    assert "Bianchi Luca 0000000003" in verdi_text
+    assert "Rossi Mario 0000000001" in bianchi_text
+    assert "Verdi Paolo 0000000002" in bianchi_text
 
     delegate_result = service.generate_documents(
         workbook,
@@ -339,8 +339,8 @@ def test_multiple_volunteers_in_one_slot_receive_separate_pdfs(
     delegate_text = " ".join(
         _pdf_text(delegate_result.appointment_files[0]).split()
     )
-    assert "Rossi, Mario: 0000000001" in delegate_text
-    assert "Verdi, Paolo: 0000000002" in delegate_text
+    assert "Rossi Mario 0000000001" in delegate_text
+    assert "Verdi Paolo 0000000002" in delegate_text
 
 
 def test_volunteer_mode_reports_when_no_volunteers_exist(
@@ -372,3 +372,100 @@ def test_volunteer_mode_reports_when_no_volunteers_exist(
             "assets/icon.png",
             mode="volontario",
         )
+
+
+def test_union_group_and_delegate_phone_reach_both_slots_and_pdf_modes(
+    tmp_path: Path, synthetic_workbook_v2
+) -> None:
+    workbook = synthetic_workbook_v2(
+        tmp_path / "input.xlsx",
+        [
+            [
+                "PRIMARY001",
+                "Referente Ospite",
+                "3334445555",
+                "Sala Sintetica",
+                4,
+                "Auto Sintetica",
+                "VERDI PAOLO 0000000001",
+                "ROSSI SIMONE 0000000002",
+                "(include JOINED001)",
+                "",
+                "",
+                "",
+            ]
+        ],
+    )
+
+    volunteer_result = service.generate_documents(
+        workbook,
+        tmp_path / "volontari",
+        "assets/icon.png",
+        mode="volontario",
+    )
+
+    assert len(volunteer_result.appointment_files) == 2
+    for path in volunteer_result.appointment_files:
+        text = " ".join(_pdf_text(path).split())
+        assert "GRUPPO PRINCIPALE PRIMARY001" in text
+        assert "GRUPPO UNITO JOINED001" in text
+        assert "Referente Ospite" in text
+        assert "3334445555" in text
+    assert any(
+        "Mattina" in _pdf_text(path)
+        for path in volunteer_result.appointment_files
+        if "verdi-paolo" in path.name.casefold()
+    )
+    assert any(
+        "Pomeriggio" in _pdf_text(path)
+        for path in volunteer_result.appointment_files
+        if "rossi-simone" in path.name.casefold()
+    )
+
+    delegate_result = service.generate_documents(
+        workbook,
+        tmp_path / "delegati",
+        "assets/icon.png",
+        mode="delegato",
+    )
+    delegate_text = " ".join(
+        _pdf_text(delegate_result.appointment_files[0]).split()
+    )
+    assert "Principale: PRIMARY001" in delegate_text
+    assert "Unito: JOINED001" in delegate_text
+    assert "3334445555" in delegate_text
+
+
+def test_validation_failure_publishes_no_documents(
+    tmp_path: Path, synthetic_workbook_v2
+) -> None:
+    workbook = synthetic_workbook_v2(
+        tmp_path / "invalid.xlsx",
+        [
+            [
+                "PRIMARY001",
+                "Referente Ospite",
+                "3334445555",
+                "Sala Sintetica",
+                4,
+                "",
+                "FORMATO NON VALIDO",
+                "ALTRO ERRORE",
+                "(include BAD CODE)",
+                "",
+                "",
+                "",
+            ]
+        ],
+    )
+    destination = tmp_path / "out"
+
+    with pytest.raises(ValueError, match="3 errori"):
+        service.generate_documents(
+            workbook,
+            destination,
+            "assets/icon.png",
+            mode="volontario",
+        )
+
+    assert not destination.exists()

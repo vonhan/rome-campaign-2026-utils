@@ -41,6 +41,7 @@ def test_gui_forwards_selected_mode_and_reports_subject(
 ) -> None:
     captured: dict[str, str] = {}
     messages: list[str] = []
+    logs: list[str] = []
 
     def generate_documents(source: str, output: str, *, mode: str):
         captured["source"] = source
@@ -64,6 +65,7 @@ def test_gui_forwards_selected_mode_and_reports_subject(
         mode_var=_Variable(mode),
         status_var=_Variable(),
         generate_button=_Button(),
+        _set_log=logs.append,
         update_idletasks=lambda: None,
     )
 
@@ -76,4 +78,40 @@ def test_gui_forwards_selected_mode_and_reports_subject(
     }
     assert expected_subject in app.status_var.get()
     assert expected_subject in messages[0]
+    assert app.generate_button.states == ["disabled", "normal"]
+    assert logs[-1].startswith("Operazione completata senza errori.")
+
+
+def test_gui_writes_generation_error_to_log(monkeypatch, tmp_path: Path) -> None:
+    logs: list[str] = []
+    dialogs: list[str] = []
+
+    def fail_generation(*_args, **_kwargs):
+        raise ValueError(
+            "Sono stati rilevati 2 errori nel file Excel.\n"
+            "- Foglio 'Appuntamenti' - cella G3: formato non valido.\n"
+            "- Foglio 'Appuntamenti' - cella I4: UNIONI non valida."
+        )
+
+    monkeypatch.setattr(gui, "generate_documents", fail_generation)
+    monkeypatch.setattr(
+        gui.messagebox,
+        "showerror",
+        lambda _title, text: dialogs.append(text),
+    )
+    app = SimpleNamespace(
+        input_var=_Variable("input.xlsx"),
+        output_var=_Variable(str(tmp_path)),
+        mode_var=_Variable("volontario"),
+        status_var=_Variable(),
+        generate_button=_Button(),
+        _set_log=logs.append,
+        update_idletasks=lambda: None,
+    )
+
+    App.generate(app)
+
+    assert "cella G3" in logs[-1]
+    assert "cella I4" in logs[-1]
+    assert "Log elaborazione" in dialogs[0]
     assert app.generate_button.states == ["disabled", "normal"]

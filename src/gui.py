@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import tkinter as tk
 from pathlib import Path
-from tkinter import filedialog, messagebox, ttk
+from tkinter import filedialog, messagebox, scrolledtext, ttk
 
 from src.service import generate_documents
 
@@ -11,8 +11,8 @@ class App(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
         self.title("Generatore appuntamenti Roma 2026")
-        self.geometry("700x430")
-        self.minsize(620, 360)
+        self.geometry("760x610")
+        self.minsize(680, 520)
 
         self.input_var = tk.StringVar()
         self.output_var = tk.StringVar()
@@ -68,9 +68,20 @@ class App(tk.Tk):
         ttk.Label(
             container,
             textvariable=self.status_var,
-            wraplength=620,
+            wraplength=680,
             justify="center",
         ).pack()
+        log_frame = ttk.LabelFrame(container, text="Log elaborazione")
+        log_frame.pack(fill="both", expand=True, pady=(12, 0))
+        self.log_text = scrolledtext.ScrolledText(
+            log_frame,
+            height=8,
+            wrap="word",
+            font=("Consolas", 9),
+            state="disabled",
+        )
+        self.log_text.pack(fill="both", expand=True, padx=6, pady=6)
+        self._set_log("Nessun errore. Il log verrà aggiornato durante l'elaborazione.")
 
     def _path_row(
         self,
@@ -104,13 +115,21 @@ class App(tk.Tk):
         if folder:
             self.output_var.set(folder)
 
+    def _set_log(self, text: str) -> None:
+        self.log_text.configure(state="normal")
+        self.log_text.delete("1.0", "end")
+        self.log_text.insert("1.0", text)
+        self.log_text.configure(state="disabled")
+
     def generate(self) -> None:
         source = self.input_var.get().strip()
         output = self.output_var.get().strip()
         if not source:
+            self._set_log("Errore: selezionare un file Excel.")
             messagebox.showerror("File mancante", "Seleziona un file Excel.")
             return
         if not output:
+            self._set_log("Errore: selezionare una cartella di destinazione.")
             messagebox.showerror(
                 "Cartella mancante", "Seleziona una cartella di destinazione."
             )
@@ -118,13 +137,19 @@ class App(tk.Tk):
 
         self.generate_button.configure(state="disabled")
         self.status_var.set("Generazione in corso…")
+        self._set_log("Elaborazione del file Excel in corso…")
         self.update_idletasks()
         try:
             mode = self.mode_var.get()
             result = generate_documents(source, output, mode=mode)
         except (OSError, ValueError) as exc:
             self.status_var.set("Generazione non completata.")
-            messagebox.showerror("Impossibile generare i PDF", str(exc))
+            self._set_log(str(exc))
+            messagebox.showerror(
+                "Impossibile generare i PDF",
+                "La generazione non è stata completata. "
+                "Consulta il riquadro Log elaborazione per i dettagli.",
+            )
         else:
             subject = (
                 "capogruppo delegato"
@@ -134,6 +159,11 @@ class App(tk.Tk):
             self.status_var.set(
                 f"Completato: {len(result.appointment_files)} PDF per "
                 f"{subject} generati."
+            )
+            self._set_log(
+                f"Operazione completata senza errori.\n"
+                f"PDF generati: {len(result.appointment_files)}\n"
+                f"Cartella: {Path(output)}"
             )
             messagebox.showinfo(
                 "Generazione completata",

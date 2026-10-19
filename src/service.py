@@ -90,7 +90,7 @@ def _build_volunteer_schedules(
     appointments: list[Appointment],
 ) -> list[VolunteerSchedule]:
     schedules: dict[
-        tuple[str, str, str],
+        tuple[str, str],
         tuple[Volunteer, list[VolunteerScheduleEntry]],
     ] = {}
 
@@ -100,7 +100,7 @@ def _build_volunteer_schedules(
                 ("Mattina", assignment.morning),
                 ("Pomeriggio", assignment.afternoon),
             ):
-                seen_in_slot: set[tuple[str, str, str]] = set()
+                seen_in_slot: set[tuple[str, str]] = set()
                 unique_volunteers: list[Volunteer] = []
                 for volunteer in volunteers:
                     if volunteer.identity_key not in seen_in_slot:
@@ -110,6 +110,7 @@ def _build_volunteer_schedules(
                     entry = VolunteerScheduleEntry(
                         volunteer=volunteer,
                         group_code=appointment.group_code,
+                        union_group_code=assignment.union_group_code,
                         date_label=assignment.date_label,
                         slot=slot,
                         note=assignment.note,

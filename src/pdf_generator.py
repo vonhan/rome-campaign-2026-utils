@@ -282,13 +282,14 @@ def write_appointment_pdf(
     assignment_rows: list[list[object]] = [
         [
             Paragraph("DATA", styles["table_header"]),
+            Paragraph("GRUPPI", styles["table_header"]),
             Table(
                 [[_icon("sun", colors.white), Paragraph("MATTINA", styles["table_header"])]],
-                colWidths=[7 * mm, 41 * mm],
+                colWidths=[5 * mm, 27 * mm],
             ),
             Table(
                 [[_icon("time", colors.white), Paragraph("POMERIGGIO", styles["table_header"])]],
-                colWidths=[7 * mm, 41 * mm],
+                colWidths=[5 * mm, 27 * mm],
             ),
             Paragraph("NOTE", styles["table_header"]),
         ]
@@ -297,6 +298,17 @@ def write_appointment_pdf(
         assignment_rows.append(
             [
                 Paragraph(_paragraph_text(assignment.date_label), styles["compact"]),
+                Paragraph(
+                    "<b>Principale:</b> "
+                    f"{_paragraph_text(appointment.group_code)}"
+                    + (
+                        "<br/><b>Unito:</b> "
+                        f"{_paragraph_text(assignment.union_group_code)}"
+                        if assignment.union_group_code
+                        else ""
+                    ),
+                    styles["compact"],
+                ),
                 Paragraph(_volunteer_text(assignment.morning), styles["compact"]),
                 Paragraph(_volunteer_text(assignment.afternoon), styles["compact"]),
                 Paragraph(_paragraph_text(assignment.note), styles["compact"]),
@@ -304,7 +316,7 @@ def write_appointment_pdf(
         )
     assignments_table = Table(
         assignment_rows,
-        colWidths=[28 * mm, 50 * mm, 50 * mm, 50 * mm],
+        colWidths=[25 * mm, 35 * mm, 42 * mm, 42 * mm, 34 * mm],
         repeatRows=1,
     )
     assignments_table.setStyle(
@@ -419,7 +431,14 @@ def write_volunteer_schedule_pdf(
                         styles["day"],
                     ),
                     Paragraph(
-                        f"GRUPPO {_paragraph_text(entry.group_code)}",
+                        "GRUPPO PRINCIPALE "
+                        f"{_paragraph_text(entry.group_code)}"
+                        + (
+                            " · GRUPPO UNITO "
+                            f"{_paragraph_text(entry.union_group_code)}"
+                            if entry.union_group_code
+                            else ""
+                        ),
                         styles["day"],
                     ),
                 ],
@@ -539,7 +558,8 @@ def write_user_guide_pdf(
         (
             "5",
             "Genera i documenti",
-            "Premi “Genera PDF” e attendi il messaggio di completamento.",
+            "Premi “Genera PDF” e attendi il messaggio di completamento. "
+            "Se qualcosa non va, consulta il riquadro “Log elaborazione”.",
         ),
         (
             "6",
@@ -597,11 +617,27 @@ def write_user_guide_pdf(
         Spacer(1, 6 * mm),
         Paragraph("Come generare i PDF", styles["guide_heading"]),
         step_table,
+        Paragraph("Formato del file Excel", styles["guide_heading"]),
+        Paragraph(
+            "Ogni giorno deve contenere le colonne <b>Mattina</b>, "
+            "<b>Pomeriggio</b> e <b>UNIONI</b>. "
+            "Scrivi ogni volontario come <b>NOME COMPLETO TELEFONO</b>, "
+            "con il telefono finale composto da sole cifre. Se i volontari "
+            "sono più di uno, separali soltanto con il punto e virgola.",
+            styles["body"],
+        ),
+        Paragraph(
+            "In <b>UNIONI</b> puoi indicare un singolo codice direttamente, "
+            "oppure nelle forme <b>(include CODICE)</b> e "
+            "<b>(aggregato CODICE)</b>. Il gruppo unito si applica sia alla "
+            "Mattina sia al Pomeriggio del giorno.",
+            styles["body"],
+        ),
         Paragraph("Se compare un errore", styles["guide_heading"]),
         Paragraph(
-            "Controlla di aver scelto un file <b>.xlsx</b> con le intestazioni previste "
-            "e una cartella in cui puoi salvare file. Il messaggio mostrato indica cosa "
-            "correggere; nessun risultato viene dichiarato completato se la generazione fallisce.",
+            "Controlla il riquadro <b>Log elaborazione</b>: ogni errore indica "
+            "foglio, cella, riga e campo da correggere. Se sono presenti "
+            "errori, nessun PDF viene pubblicato.",
             styles["body"],
         ),
         Paragraph("Protezione dei dati", styles["guide_heading"]),

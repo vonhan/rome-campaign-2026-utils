@@ -7,6 +7,28 @@ import pytest
 from openpyxl import Workbook
 
 
+def _expand_compact_row(row: list[object]) -> list[object]:
+    """Convert the compact test row into the definitive workbook layout."""
+    if len(row) == 11:
+        return [
+            row[0],
+            row[1],
+            "",
+            row[2],
+            row[3],
+            row[4],
+            row[5],
+            row[6],
+            "",
+            row[7],
+            row[8],
+            row[9],
+            "",
+            row[10],
+        ]
+    return row
+
+
 @pytest.fixture
 def synthetic_workbook() -> Callable[[Path, list[list[object]] | None], Path]:
     def create(
@@ -20,13 +42,16 @@ def synthetic_workbook() -> Callable[[Path, list[list[object]] | None], Path]:
             [
                 "Codice Gruppo",
                 "Referente Gruppo",
+                "Telefono Referente",
                 "Sala del Regno",
                 "N. Ospiti",
                 "Auto Ospiti",
                 "26/10 (Lunedì)",
                 "",
                 "",
+                "",
                 "27/10 (Martedì)",
+                "",
                 "",
                 "",
             ]
@@ -38,16 +63,19 @@ def synthetic_workbook() -> Callable[[Path, list[list[object]] | None], Path]:
                 "",
                 "",
                 "",
+                "",
                 "Mattina",
                 "Pomeriggio",
+                "UNIONI",
                 "NOTE",
                 "Mattina",
                 "Pomeriggio",
+                "UNIONI",
                 "NOTE",
             ]
         )
-        worksheet.merge_cells("F1:H1")
-        worksheet.merge_cells("I1:K1")
+        worksheet.merge_cells("G1:J1")
+        worksheet.merge_cells("K1:N1")
         rows = data_rows or [
             [
                 "RM-01",
@@ -55,16 +83,16 @@ def synthetic_workbook() -> Callable[[Path, list[list[object]] | None], Path]:
                 "Sala Centro",
                 4,
                 "Auto blu",
-                "ROSSI, MARIO: 000 111 222",
-                "VERDI, ANNA: 000 333 444",
+                "ROSSI MARIO 000111222",
+                "VERDI ANNA 000333444",
                 "Portare il materiale",
-                "BIANCHI, LUCA: 000 555 666",
+                "BIANCHI LUCA 000555666",
                 "",
                 "Ingresso laterale",
             ]
         ]
         for row in rows:
-            worksheet.append(row)
+            worksheet.append(_expand_compact_row(row))
         workbook.save(path)
         return path
 
@@ -106,10 +134,10 @@ def synthetic_workbook_v2() -> Callable[[Path, list[list[object]] | None], Path]
                 "",
                 "Mattina",
                 "Pomeriggio",
-                "NOTE",
+                "UNIONI",
                 "Mattina",
                 "Pomeriggio",
-                "NOTE",
+                "UNIONI",
             ]
         )
         worksheet.merge_cells("G1:I1")
@@ -122,12 +150,12 @@ def synthetic_workbook_v2() -> Callable[[Path, list[list[object]] | None], Path]
                 "Sala Centro",
                 4,
                 "Auto blu",
-                "ROSSI MARIO 0001112222 e VERDI PAOLO 0003334444",
+                "ROSSI MARIO 0001112222; VERDI PAOLO 0003334444",
                 "",
-                "Portare il materiale",
+                "(include JOINED001)",
                 "BIANCHI LUCA 0005556666",
                 "",
-                "Ingresso laterale",
+                "",
             ]
         ]
         for row in rows:

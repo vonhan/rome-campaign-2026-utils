@@ -51,15 +51,16 @@ Nella cartella scelta vengono creati:
 - nella modalità delegato, un file
   `Appuntamento-Referente-Gruppo-Codice-Gruppo-riga-N.pdf` per ogni riga non
   vuota del foglio;
-- nella modalità volontario, un file `Volontario-Cognome-Nome-...pdf` per ogni
+- nella modalità volontario, un file `Volontario-Nome-Completo-...pdf` per ogni
   volontario distinto, con tutti i suoi appuntamenti;
 - `Guida-uso.pdf`, con le istruzioni per l'operatore.
 
-Ogni appuntamento del PDF volontario riporta codice gruppo, capogruppo
-delegato, Sala del Regno, numero e auto degli ospiti, data, fascia e note. Non
-riporta i dati del volontario assegnato all'altra fascia. Se più volontari sono
-nella stessa fascia dello stesso appuntamento, il PDF di ciascuno indica anche
-gli altri volontari presenti.
+Ogni appuntamento del PDF volontario riporta codice gruppo principale,
+eventuale gruppo unito, capogruppo delegato con telefono, Sala del Regno,
+numero e auto degli ospiti, data, fascia e note. Non riporta i dati del
+volontario assegnato all'altra fascia. Se più volontari sono nella stessa
+fascia dello stesso appuntamento, il PDF di ciascuno indica anche gli altri
+volontari presenti.
 
 Non è necessario installare Python.
 
@@ -67,40 +68,57 @@ Non è necessario installare Python.
 
 Il primo foglio deve avere due righe di intestazione:
 
-- prima riga: `Codice Gruppo`, `Referente Gruppo`, `Sala del Regno`,
-  `N. Ospiti`, `Auto Ospiti`, seguiti dai blocchi data come
+- prima riga: `Codice Gruppo`, `Referente Gruppo`, `Telefono Referente`,
+  `Sala del Regno`, `N. Ospiti`, `Auto Ospiti`, seguiti dai blocchi data come
   `26/10 (Lunedì)`;
-- seconda riga, per ogni data: `Mattina`, `Pomeriggio`, `NOTE`.
+- seconda riga, per ogni data: `Mattina`, `Pomeriggio`, `UNIONI`.
+
+Se un file contiene anche una colonna `NOTE` nel blocco giornaliero, il suo
+contenuto viene ancora riportato nei PDF.
 
 Le celle Mattina e Pomeriggio possono contenere un accompagnatore nel formato:
 
 ```text
-COGNOME NOME NUMERO_TELEFONO
+NOME COMPLETO NUMERO_TELEFONO
 ```
 
-Per compatibilità si continua a supportare anche il formato legacy `COGNOME, NOME: NUMERO_TELEFONO`.
+Il numero di telefono deve essere l'ultimo elemento e deve contenere soltanto
+cifre. Tutto il testo che lo precede viene considerato il nome completo, senza
+tentare di separare nome e cognome.
 
-Se più volontari condividono la stessa fascia, separarli con ` e `:
+Se più volontari condividono la stessa fascia, separarli esclusivamente con
+un punto e virgola:
 
 ```text
-ROSSI MARIO 0000000001 e VERDI PAOLO 0000000002
+ROSSI MARIO 0000000001; VERDI PAOLO 0000000002
 ```
 
 In modalità volontario l'appuntamento viene inserito nel PDF di ciascuna
-persona, senza creare un unico PDF con i nomi combinati. Sono accettati anche
-il punto e virgola o una nuova riga come separatori.
+persona, senza creare un unico PDF con i nomi combinati. Il vecchio formato
+`COGNOME, NOME: NUMERO_TELEFONO` e gli altri separatori non sono accettati.
 
-La colonna `Telefono Referente` (inserita in posizione C nel nuovo schema del
-file v2) viene mostrata nei PDF sia del delegato sia del volontario.
+La colonna `UNIONI` può essere vuota oppure contenere un solo codice in una
+delle forme seguenti:
 
-I dati parziali vengono conservati e mostrati senza inventare informazioni
-mancanti. Righe con tutti e cinque i campi principali vuoti vengono ignorate.
+```text
+UNITO0000001
+(include UNITO0000001)
+(aggregato UNITO0000001)
+```
+
+Il codice unito si applica sia alla Mattina sia al Pomeriggio di quel giorno e
+viene mostrato, insieme al codice gruppo principale, nei PDF delegato e
+volontario. `Telefono Referente` viene mostrato in entrambi i tipi di PDF.
+
+Se il programma trova celle non valide, blocca la generazione e mostra tutti
+gli errori insieme. Nella GUI i dettagli sono nel riquadro **Log elaborazione**;
+da terminale vengono scritti su `stderr`. Ogni errore indica foglio, cella,
+riga, giorno e campo, senza ripetere il contenuto sensibile della cella.
 
 ## Protezione dei dati
 
-Il file reale `assets/Abbinamenti DEF.xlsx` e tutti i file `.xlsx` sotto
-`assets/` sono esclusi da Git. Test e automazioni usano esclusivamente dati
-sintetici creati in cartelle temporanee.
+Tutti i file `.xlsx` sotto `assets/` sono esclusi da Git. Test e automazioni
+usano esclusivamente dati sintetici creati in cartelle temporanee.
 
 Non allegare il foglio reale a issue, log o richieste di assistenza. Per
 segnalare un problema è sufficiente comunicare il testo dell'errore senza
@@ -135,8 +153,8 @@ Per generare invece il flusso per volontario:
 python main.py --input "/percorso/appuntamenti.xlsx" --output "/percorso/pdf" --mode volontario
 ```
 
-La modalità volontario considera uguali le occorrenze con lo stesso cognome,
-nome e telefono, ignorando differenze di maiuscole e spazi.
+La modalità volontario considera uguali le occorrenze con lo stesso nome
+completo e telefono, ignorando differenze di maiuscole e spazi.
 
 Per generare soltanto la guida:
 
@@ -150,9 +168,9 @@ python main.py --guide-only "Guida-uso.pdf"
 python -m pytest
 ```
 
-La suite verifica parser, celle unite e header su due righe, parsing degli
-accompagnatori, generazione e contenuto dei PDF, gestione degli errori, assenza
-di output parziali, CLI e configurazione del pacchetto Windows.
+La suite verifica parser, celle unite e header su due righe, formato dei
+volontari, UNIONI, generazione e contenuto dei PDF, log degli errori, assenza
+di output parziali, GUI, CLI e configurazione del pacchetto Windows.
 
 ## Build Windows
 

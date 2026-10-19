@@ -16,31 +16,27 @@ def _normalize_phone(value: str) -> str:
 @dataclass(frozen=True)
 class Volunteer:
     raw: str
-    surname: str = ""
-    name: str = ""
+    full_name: str = ""
     phone: str = ""
 
     @property
     def display_name(self) -> str:
-        if self.surname and self.name:
-            return f"{self.surname}, {self.name}"
-        return self.surname or self.name or self.raw
+        return self.full_name or self.raw
 
     @property
     def display(self) -> str:
-        if self.phone and (self.surname or self.name):
-            return f"{self.display_name}: {self.phone}"
+        if self.phone and self.full_name:
+            return f"{self.display_name} {self.phone}"
         return self.raw
 
     @property
-    def identity_key(self) -> tuple[str, str, str]:
-        if self.surname or self.name or self.phone:
+    def identity_key(self) -> tuple[str, str]:
+        if self.full_name or self.phone:
             return (
-                _normalize_identity_part(self.surname),
-                _normalize_identity_part(self.name),
+                _normalize_identity_part(self.full_name),
                 _normalize_phone(self.phone),
             )
-        return (_normalize_identity_part(self.raw), "", "")
+        return (_normalize_identity_part(self.raw), "")
 
 
 @dataclass(frozen=True)
@@ -48,6 +44,7 @@ class DayAssignment:
     date_label: str
     morning: tuple[Volunteer, ...] = ()
     afternoon: tuple[Volunteer, ...] = ()
+    union_group_code: str = ""
     note: str = ""
 
 
@@ -71,6 +68,7 @@ class Appointment:
 class VolunteerScheduleEntry:
     volunteer: Volunteer
     group_code: str = ""
+    union_group_code: str = ""
     date_label: str = ""
     slot: str = ""
     note: str = ""

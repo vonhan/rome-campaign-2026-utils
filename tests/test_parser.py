@@ -3,15 +3,21 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from openpyxl import Workbook
+from openpyxl import Workbook, load_workbook
 
-from src.excel_parser import parse_volunteer, parse_volunteers, read_appointments
+from src.diagnostics import WorkbookValidationError
+from src.excel_parser import (
+    parse_union_group,
+    parse_volunteer,
+    parse_volunteers,
+    read_appointments,
+)
 
 
-def test_read_appointments_understands_real_header_shape(
-    tmp_path: Path, synthetic_workbook
+def test_read_appointments_understands_definitive_header_shape(
+    tmp_path: Path, synthetic_workbook_v2
 ) -> None:
-    workbook_path = synthetic_workbook(tmp_path / "synthetic.xlsx")
+    workbook_path = synthetic_workbook_v2(tmp_path / "synthetic.xlsx")
 
     appointments = read_appointments(workbook_path)
 
@@ -19,6 +25,7 @@ def test_read_appointments_understands_real_header_shape(
     appointment = appointments[0]
     assert appointment.group_code == "RM-01"
     assert appointment.group_contact == "Referente Sintetico"
+    assert appointment.group_contact_phone == "+39 333 444 5555"
     assert appointment.kingdom_hall == "Sala Centro"
     assert appointment.guest_count == "4"
     assert appointment.guest_vehicle == "Auto blu"
@@ -27,11 +34,33 @@ def test_read_appointments_understands_real_header_shape(
         "26/10 (Lunedì)",
         "27/10 (Martedì)",
     ]
-    assert len(appointment.assignments[0].morning) == 1
-    assert appointment.assignments[0].morning[0].surname == "ROSSI"
-    assert appointment.assignments[0].morning[0].name == "MARIO"
-    assert appointment.assignments[0].morning[0].phone == "000 111 222"
+    assert appointment.assignments[0].union_group_code == "JOINED001"
+    assert [
+        (volunteer.full_name, volunteer.phone)
+        for volunteer in appointment.assignments[0].morning
+    ] == [
+        ("ROSSI MARIO", "0001112222"),
+        ("VERDI PAOLO", "0003334444"),
+    ]
     assert appointment.assignments[1].afternoon == ()
+
+
+def test_definitive_base_columns_use_positions_for_unknown_c_and_d_headers(
+    tmp_path: Path, synthetic_workbook_v2
+) -> None:
+    path = synthetic_workbook_v2(tmp_path / "positional.xlsx")
+
+    workbook = load_workbook(path)
+    sheet = workbook.active
+    sheet["C1"] = "Intestazione telefono personalizzata"
+    sheet["D1"] = "Intestazione luogo personalizzata"
+    workbook.save(path)
+    workbook.close()
+
+    appointment = read_appointments(path)[0]
+
+    assert appointment.group_contact_phone == "+39 333 444 5555"
+    assert appointment.kingdom_hall == "Sala Centro"
 
 
 def test_read_appointments_keeps_every_non_empty_data_row(
@@ -52,49 +81,158 @@ def test_read_appointments_keeps_every_non_empty_data_row(
 
 
 @pytest.mark.parametrize(
-    ("raw", "expected"),
+    ("raw", "name", "phone"),
     [
-        ("  ROSSI, MARIO: 000 123 456  ", "ROSSI, MARIO: 000 123 456"),
-        ("Dato non strutturato", "Dato non strutturato"),
+        ("ROSSI MARIO 000123456", "ROSSI MARIO", "000123456"),
+        (
+            "DE ROSSI MARIA LUISA 0009990000",
+            "DE ROSSI MARIA LUISA",
+            "0009990000",
+        ),
     ],
 )
-def test_parse_volunteer_preserves_complete_or_partial_data(
-    raw: str, expected: str
+def test_parse_volunteer_preserves_full_name(
+    raw: str, name: str, phone: str
 ) -> None:
     volunteer = parse_volunteer(raw)
 
     assert volunteer is not None
-    assert volunteer.display == expected
+    assert volunteer.full_name == name
+    assert volunteer.phone == phone
+    assert volunteer.display == raw
 
 
 def test_parse_volunteer_returns_none_for_empty_value() -> None:
     assert parse_volunteer("  ") is None
 
 
-@pytest.mark.parametrize(
-    "separator",
-    [" e ", "; ", "\n"],
-)
-def test_parse_volunteers_splits_multiple_people(separator: str) -> None:
+def test_parse_volunteers_splits_only_on_semicolon() -> None:
     volunteers = parse_volunteers(
-        f"Rossi, Mario: 0000000001{separator}Verdi, Paolo: 0000000002"
+        "ROSSI MARIO 0000000001; VERDI PAOLO 0000000002"
     )
 
-    assert [
-        (volunteer.surname, volunteer.name, volunteer.phone)
-        for volunteer in volunteers
-    ] == [
-        ("Rossi", "Mario", "0000000001"),
-        ("Verdi", "Paolo", "0000000002"),
+    assert [(item.full_name, item.phone) for item in volunteers] == [
+        ("ROSSI MARIO", "0000000001"),
+        ("VERDI PAOLO", "0000000002"),
     ]
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        "ROSSI, MARIO: 0000000001",
+        "ROSSI MARIO 0000000001 e VERDI PAOLO 0000000002",
+        "ROSSI MARIO +39 0000000001",
+        "ROSSI MARIO abc",
+        "0000000001",
+    ],
+)
+def test_invalid_volunteer_formats_are_rejected(raw: str) -> None:
+    with pytest.raises(ValueError, match="Formato volontario non valido"):
+        parse_volunteers(raw)
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        "; ROSSI MARIO 0000000001",
+        "ROSSI MARIO 0000000001;; VERDI PAOLO 0000000002",
+        "ROSSI MARIO 0000000001;;",
+    ],
+)
+def test_empty_volunteer_elements_are_rejected(raw: str) -> None:
+    with pytest.raises(ValueError, match="Separatore ';' non valido"):
+        parse_volunteers(raw)
+
+
+def test_single_trailing_semicolon_is_accepted() -> None:
+    volunteers = parse_volunteers("ROSSI MARIO 0000000001;")
+
+    assert [(item.full_name, item.phone) for item in volunteers] == [
+        ("ROSSI MARIO", "0000000001")
+    ]
+
+
+def test_duplicate_volunteer_in_same_cell_is_rejected() -> None:
+    with pytest.raises(ValueError, match="ripetuto"):
+        parse_volunteers(
+            "ROSSI MARIO 0000000001;  rossi   mario 0000000001"
+        )
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("UNITO0000001", "UNITO0000001"),
+        ("(include UNITO0000001)", "UNITO0000001"),
+        ("(aggregato unito0000001)", "UNITO0000001"),
+        ("", ""),
+        (None, ""),
+    ],
+)
+def test_parse_union_group_accepts_documented_forms(
+    raw: object, expected: str
+) -> None:
+    assert parse_union_group(raw) == expected
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        "(include UNITO0000001",
+        "include UNITO0000001",
+        "(unito UNITO0000001)",
+        "UNITO0000001; ALTRO000001",
+        "(include UNITO0000001 ALTRO000001)",
+    ],
+)
+def test_parse_union_group_rejects_ambiguous_values(raw: str) -> None:
+    with pytest.raises(ValueError, match="Formato UNIONI non valido"):
+        parse_union_group(raw)
+
+
+def test_validation_errors_are_aggregated_with_coordinates_without_values(
+    tmp_path: Path, synthetic_workbook_v2
+) -> None:
+    sensitive_name = "PERSONA SEGRETA"
+    rows = [
+        [
+            "RM-ERR",
+            "Referente Sintetico",
+            "0000000000",
+            "Sala",
+            1,
+            "",
+            f"{sensitive_name} telefono",
+            "ALTRO NOME 123;;",
+            "(include BAD CODE)",
+            "",
+            "",
+            "",
+        ]
+    ]
+    path = synthetic_workbook_v2(tmp_path / "errors.xlsx", rows)
+
+    with pytest.raises(WorkbookValidationError) as raised:
+        read_appointments(path)
+
+    error = raised.value
+    assert len(error.issues) == 3
+    assert [issue.cell for issue in error.issues] == ["G3", "H3", "I3"]
+    message = str(error)
+    assert "Foglio 'Appuntamenti'" in message
+    assert "26/10 (Lunedì)" in message
+    assert sensitive_name not in message
 
 
 def test_missing_required_header_is_reported(tmp_path: Path) -> None:
     path = tmp_path / "invalid.xlsx"
     workbook = Workbook()
     sheet = workbook.active
-    sheet.append(["Codice Gruppo", "Referente Gruppo", "Sala del Regno"])
-    sheet.append(["", "", ""])
+    sheet.append(
+        ["Codice Gruppo", "Referente Gruppo", "Sala del Regno", "26/10"]
+    )
+    sheet.append(["", "", "", "Mattina"])
     workbook.save(path)
 
     with pytest.raises(ValueError, match="Intestazioni obbligatorie mancanti"):
@@ -119,7 +257,10 @@ def test_incomplete_date_block_is_reported(tmp_path: Path) -> None:
     sheet.append(["", "", "", "", "", "Mattina", "Pomeriggio"])
     workbook.save(path)
 
-    with pytest.raises(ValueError, match="Mattina, Pomeriggio e NOTE"):
+    with pytest.raises(
+        ValueError,
+        match="Mattina, Pomeriggio e UNIONI",
+    ):
         read_appointments(path)
 
 
@@ -137,43 +278,3 @@ def test_corrupted_xlsx_is_reported_clearly(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="Impossibile leggere il file Excel"):
         read_appointments(path)
-
-
-def test_read_appointments_supports_v2_delegate_phone_and_name_format(
-    tmp_path: Path, synthetic_workbook_v2
-) -> None:
-    workbook_path = synthetic_workbook_v2(tmp_path / "v2.xlsx")
-
-    appointments = read_appointments(workbook_path)
-
-    assert len(appointments) == 1
-    appointment = appointments[0]
-    assert appointment.group_contact_phone == "+39 333 444 5555"
-    assert appointment.assignments[0].morning[0].surname == "ROSSI"
-    assert appointment.assignments[0].morning[0].name == "MARIO"
-    assert appointment.assignments[0].morning[0].phone == "0001112222"
-    assert appointment.assignments[0].morning[1].surname == "VERDI"
-    assert appointment.assignments[0].morning[1].name == "PAOLO"
-    assert appointment.assignments[0].morning[1].phone == "0003334444"
-
-
-@pytest.mark.parametrize(
-    ("raw", "expected"),
-    [
-        ("ROSSI MARIO 0001112222", ("ROSSI", "MARIO", "0001112222")),
-        ("ROSSI, MARIO: 0001112222", ("ROSSI", "MARIO", "0001112222")),
-        ("Dato non strutturato", None),
-    ],
-)
-def test_parse_volunteer_supports_legacy_and_v2_formats(
-    raw: str, expected: tuple[str, str, str] | None
-) -> None:
-    volunteer = parse_volunteer(raw)
-
-    if expected is None:
-        assert volunteer is not None
-        assert volunteer.raw == raw
-        return
-
-    assert volunteer is not None
-    assert (volunteer.surname, volunteer.name, volunteer.phone) == expected

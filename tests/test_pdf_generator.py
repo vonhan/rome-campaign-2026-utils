@@ -30,9 +30,8 @@ def test_appointment_pdf_contains_all_sections_and_escaped_text(
                 date_label="26/10 (Lunedì)",
                 morning=(
                     Volunteer(
-                        raw="ROSSI, MARIO: 000",
-                        surname="ROSSI",
-                        name="MARIO",
+                        raw="ROSSI MARIO 000",
+                        full_name="ROSSI MARIO",
                         phone="000",
                     ),
                 ),
@@ -46,7 +45,7 @@ def test_appointment_pdf_contains_all_sections_and_escaped_text(
     write_appointment_pdf(appointment, output, Path("assets/icon.png"))
 
     reader = PdfReader(output)
-    text = _pdf_text(output)
+    text = " ".join(_pdf_text(output).split())
     assert len(reader.pages) == 1
     assert "Campagna Speciale Roma 2026" in text
     assert "Appuntamento di servizio" in text
@@ -54,7 +53,7 @@ def test_appointment_pdf_contains_all_sections_and_escaped_text(
     assert "Referente & Collaboratore" in text
     assert "Sala Città" in text
     assert "Auto <test>" in text
-    assert "ROSSI, MARIO: 000" in text
+    assert "ROSSI MARIO 000" in text
     assert "Nota sintetica & verificabile" in text
 
 
@@ -65,13 +64,19 @@ def test_user_guide_pdf_contains_usage_and_privacy_instructions(
 
     write_user_guide_pdf(output, Path("assets/icon.png"))
 
-    text = _pdf_text(output)
+    text = " ".join(_pdf_text(output).split())
     assert "Campagna Speciale Roma 2026" in text
     assert "Guida rapida" in text
     assert "Scegli il file Excel" in text
     assert "Scegli il tipo di PDF" in text
     assert "capogruppo delegato" in text
     assert "capogruppo volontario" in text
+    assert "Mattina" in text
+    assert "Pomeriggio" in text
+    assert "UNIONI" in text
+    assert "NOME COMPLETO TELEFONO" in text
+    assert "punto e virgola" in text
+    assert "Log elaborazione" in text
     assert "Protezione dei dati" in text
     assert "senza allegare il file Excel" in text
 
@@ -82,8 +87,8 @@ def test_typical_seven_day_appointment_fits_on_one_page(
     assignments = [
         DayAssignment(
             date_label=f"{26 + day}/10",
-            morning=(Volunteer(raw="ROSSI, MARIO: 000 111 222"),),
-            afternoon=(Volunteer(raw="VERDI, ANNA: 000 333 444"),),
+            morning=(Volunteer(raw="ROSSI MARIO 000111222"),),
+            afternoon=(Volunteer(raw="VERDI ANNA 000333444"),),
             note="Nota sintetica",
         )
         for day in range(6)
@@ -91,7 +96,7 @@ def test_typical_seven_day_appointment_fits_on_one_page(
     assignments.append(
         DayAssignment(
             date_label="01/11",
-            morning=(Volunteer(raw="BIANCHI, LUCA: 000 555 666"),),
+            morning=(Volunteer(raw="BIANCHI LUCA 000555666"),),
             note="Nota sintetica",
         )
     )
@@ -121,7 +126,7 @@ def test_appointment_pdf_renders_with_campaign_logo(tmp_path: Path) -> None:
         assignments=[
             DayAssignment(
                 date_label="26/10 (Lunedì)",
-                morning=(Volunteer(raw="ROSSI, MARIO: 000 111 222"),),
+                morning=(Volunteer(raw="ROSSI MARIO 000111222"),),
                 note="Nota sintetica",
             )
         ],
@@ -162,9 +167,8 @@ def test_volunteer_schedule_flows_across_pages_without_losing_entries(
     tmp_path: Path,
 ) -> None:
     volunteer = Volunteer(
-        raw="ROSSI, MARIO: 000",
-        surname="ROSSI",
-        name="MARIO",
+        raw="ROSSI MARIO 000",
+        full_name="ROSSI MARIO",
         phone="000",
     )
     entries = [
