@@ -173,10 +173,10 @@ def test_volunteer_pdf_contains_complete_appointment_without_counterpart(
     assert "Delegato Completo" in text
     assert "Sala Test Completa" in text
     assert "7" in text
-    assert "Auto Ospiti Completa" in text
+    assert "Auto Ospiti Completa" not in text
     assert "26/10 (Lunedì)" in text
     assert "Mattina" in text
-    assert "Nota completa mattina" in text
+    assert "Nota completa mattina" not in text
     assert "VERDI, ANNA" not in text
     assert "222" not in text
 
@@ -242,10 +242,10 @@ def test_volunteer_identity_normalizes_case_and_spaces_but_not_phone(
     ]
     first_text = _pdf_text(result.appointment_files[0])
     second_text = _pdf_text(result.appointment_files[1])
-    assert "Prima occorrenza" in first_text
-    assert "Seconda occorrenza" in first_text
+    assert "Prima occorrenza" not in first_text
+    assert "Seconda occorrenza" not in first_text
     assert "Omonimo differente" not in first_text
-    assert "Omonimo differente" in second_text
+    assert "Omonimo differente" not in second_text
 
 
 def test_volunteer_generation_is_not_published_after_render_error(
@@ -313,7 +313,7 @@ def test_multiple_volunteers_in_one_slot_receive_separate_pdfs(
         assert "RM-SHARED" in text
         assert "Delegato Condiviso" in text
         assert "Sala Condivisa" in text
-        assert "Appuntamento condiviso" in text
+        assert "Appuntamento condiviso" not in text
     rossi_text = _pdf_text(
         next(path for path in result.appointment_files if "Rossi-Mario" in path.name)
     )
@@ -413,6 +413,7 @@ def test_union_group_and_delegate_phone_reach_both_slots_and_pdf_modes(
         assert "JOINED003" in text
         assert "Referente Ospite" in text
         assert "3334445555" in text
+        assert "Capogruppo" in text
     assert any(
         "Mattina" in _pdf_text(path)
         for path in volunteer_result.appointment_files

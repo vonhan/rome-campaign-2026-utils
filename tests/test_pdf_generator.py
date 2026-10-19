@@ -206,5 +206,5 @@ def test_volunteer_schedule_flows_across_pages_without_losing_entries(
         assert f"GRUPPO-{index:02d}" in text
         assert f"Delegato {index}" in text
         assert f"Sala {index}" in text
-        assert f"Auto {index}" in text
-        assert f"Nota appuntamento {index}" in text
+        assert f"Auto {index}" not in text
+        assert f"Nota appuntamento {index}" not in text

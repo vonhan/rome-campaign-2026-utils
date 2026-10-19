@@ -65,10 +65,18 @@ class Appointment:
 
 
 @dataclass(frozen=True)
+class UnionGroupInfo:
+    group_code: str = ""
+    group_contact: str = ""
+    group_contact_phone: str = ""
+
+
+@dataclass(frozen=True)
 class VolunteerScheduleEntry:
     volunteer: Volunteer
     group_code: str = ""
     union_group_code: tuple[str, ...] = ()
+    union_group_details: tuple[UnionGroupInfo, ...] = ()
     date_label: str = ""
     slot: str = ""
     note: str = ""

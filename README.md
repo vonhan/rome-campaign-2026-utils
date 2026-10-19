@@ -56,11 +56,12 @@ Nella cartella scelta vengono creati:
 - `Guida-uso.pdf`, con le istruzioni per l'operatore.
 
 Ogni appuntamento del PDF volontario riporta codice gruppo principale,
-eventuale gruppo unito, capogruppo delegato con telefono, Sala del Regno,
-numero e auto degli ospiti, data, fascia e note. Non riporta i dati del
-volontario assegnato all'altra fascia. Se più volontari sono nella stessa
-fascia dello stesso appuntamento, il PDF di ciascuno indica anche gli altri
-volontari presenti.
+gruppi uniti con capogruppo e telefono, Sala del Regno, numero ospiti, data,
+fascia e altri volontari presenti nella stessa fascia. Non riporta i campi
+ridondanti `Auto Ospiti` e `Note` e non incolla i dati del volontario
+assegnato all'altra fascia. Se più volontari sono nella stessa fascia dello
+stesso appuntamento, il PDF di ciascuno indica anche gli altri volontari
+presenti.
 
 Non è necessario installare Python.
 
@@ -73,8 +74,9 @@ Il primo foglio deve avere due righe di intestazione:
   `26/10 (Lunedì)`;
 - seconda riga, per ogni data: `Mattina`, `Pomeriggio`, `UNIONI`.
 
-Se un file contiene anche una colonna `NOTE` nel blocco giornaliero, il suo
-contenuto viene ancora riportato nei PDF.
+Se un file contiene anche una colonna `NOTE` nel blocco giornaliero, il
+contenuto viene riportato nei PDF delegato ma non nel PDF volontario, dove il
+layout è dedicato ai dati essenziali dell'appuntamento.
 
 Le celle Mattina e Pomeriggio possono contenere un accompagnatore nel formato:
 
@@ -116,8 +118,9 @@ UNITO0000001; (include UNITO0000002); (aggregato UNITO0000003)
 
 I codici uniti si applicano sia alla Mattina sia al Pomeriggio di quel giorno e
 vengono mostrati uno per riga, insieme al codice gruppo principale, nei PDF
-delegato e volontario. `Telefono Referente` viene mostrato in entrambi i tipi
-di PDF.
+delegato e volontario. Nel PDF del volontario sono inoltre riportati il
+capogruppo del gruppo unito e il suo numero di telefono, mentre i campi
+`Auto Ospiti` e `Note` non compaiono.
 
 Se il programma trova celle non valide, blocca la generazione e mostra tutti
 gli errori insieme. Nella GUI i dettagli sono nel riquadro **Log elaborazione**;

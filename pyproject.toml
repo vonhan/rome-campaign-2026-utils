@@ -1,6 +1,6 @@
 [project]
 name = "rome-campaign-2026-utils"
-version = "1.4.1"
+version = "1.4.2"
 description = "Generatore PDF per gli appuntamenti della campagna Roma 2026"
 readme = "README.md"
 requires-python = ">=3.11"

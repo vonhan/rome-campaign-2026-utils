@@ -12,7 +12,13 @@ from src.pdf_generator import (
     write_user_guide_pdf,
     write_volunteer_schedule_pdf,
 )
-from src.models import Appointment, Volunteer, VolunteerSchedule, VolunteerScheduleEntry
+from src.models import (
+    Appointment,
+    UnionGroupInfo,
+    Volunteer,
+    VolunteerSchedule,
+    VolunteerScheduleEntry,
+)
 from src.resources import resource_path
 
 
@@ -93,6 +99,14 @@ def _build_volunteer_schedules(
         tuple[str, str],
         tuple[Volunteer, list[VolunteerScheduleEntry]],
     ] = {}
+    group_lookup: dict[str, tuple[str, str]] = {
+        str(appointment.group_code).upper(): (
+            appointment.group_contact,
+            appointment.group_contact_phone,
+        )
+        for appointment in appointments
+        if appointment.group_code
+    }
 
     for appointment in appointments:
         for date_order, assignment in enumerate(appointment.assignments):
@@ -107,10 +121,19 @@ def _build_volunteer_schedules(
                         seen_in_slot.add(volunteer.identity_key)
                         unique_volunteers.append(volunteer)
                 for volunteer in unique_volunteers:
+                    union_group_details = tuple(
+                        UnionGroupInfo(
+                            group_code=code,
+                            group_contact=group_lookup.get(code.upper(), ("", ""))[0],
+                            group_contact_phone=group_lookup.get(code.upper(), ("", ""))[1],
+                        )
+                        for code in assignment.union_group_code
+                    )
                     entry = VolunteerScheduleEntry(
                         volunteer=volunteer,
                         group_code=appointment.group_code,
                         union_group_code=assignment.union_group_code,
+                        union_group_details=union_group_details,
                         date_label=assignment.date_label,
                         slot=slot,
                         note=assignment.note,

@@ -20,7 +20,7 @@ from reportlab.platypus import (
     TableStyle,
 )
 
-from src.models import Appointment, Volunteer, VolunteerScheduleEntry
+from src.models import Appointment, UnionGroupInfo, Volunteer, VolunteerScheduleEntry
 
 
 _BLUE = colors.HexColor("#1E4E79")
@@ -45,6 +45,18 @@ def _volunteer_text(volunteers: tuple[Volunteer, ...]) -> str:
 
 def _union_groups_text(codes: tuple[str, ...]) -> str:
     return "<br/>".join(_paragraph_text(code) for code in codes)
+
+
+def _union_group_details_text(details: tuple[UnionGroupInfo, ...]) -> str:
+    if not details:
+        return _paragraph_text("—")
+    return "<br/>".join(
+        _paragraph_text(
+            f"{detail.group_code} · Capogruppo: {detail.group_contact or 'Non disponibile'} · "
+            f"Telefono: {detail.group_contact_phone or 'Non disponibile'}"
+        )
+        for detail in details
+    )
 
 
 def _logo_image(logo_path: str | Path) -> Image:
@@ -475,9 +487,9 @@ def write_volunteer_schedule_pdf(
                     ),
                 ],
                 [
-                    Paragraph("AUTO OSPITI", styles["label"]),
+                    Paragraph("GRUPPI UNITI", styles["label"]),
                     Paragraph(
-                        _paragraph_text(entry.guest_vehicle),
+                        _union_group_details_text(entry.union_group_details),
                         styles["body"],
                     ),
                 ],
@@ -492,10 +504,6 @@ def write_volunteer_schedule_pdf(
                         ),
                         styles["body"],
                     ),
-                ],
-                [
-                    Paragraph("NOTE", styles["label"]),
-                    Paragraph(_paragraph_text(entry.note), styles["body"]),
                 ],
             ],
             colWidths=[48 * mm, 126 * mm],
