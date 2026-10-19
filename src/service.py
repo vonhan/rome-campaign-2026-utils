@@ -124,8 +124,8 @@ def _build_volunteer_schedules(
                     union_group_details = tuple(
                         UnionGroupInfo(
                             group_code=code,
-                            group_contact=group_lookup.get(code.upper(), ("", ""))[0],
-                            group_contact_phone=group_lookup.get(code.upper(), ("", ""))[1],
+                            group_contact=group_lookup[code.upper()][0],
+                            group_contact_phone=group_lookup[code.upper()][1],
                         )
                         for code in assignment.union_group_code
                     )

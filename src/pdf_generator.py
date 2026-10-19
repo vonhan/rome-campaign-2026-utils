@@ -50,10 +50,11 @@ def _union_groups_text(codes: tuple[str, ...]) -> str:
 def _union_group_details_text(details: tuple[UnionGroupInfo, ...]) -> str:
     if not details:
         return _paragraph_text("—")
-    return "<br/>".join(
-        _paragraph_text(
-            f"{detail.group_code} · Capogruppo: {detail.group_contact or 'Non disponibile'} · "
-            f"Telefono: {detail.group_contact_phone or 'Non disponibile'}"
+    return "<br/><br/>".join(
+        (
+            f"<b>{_paragraph_text(detail.group_code)}</b><br/>"
+            f"Referente: {_paragraph_text(detail.group_contact)}"
+            f" · Telefono: {_paragraph_text(detail.group_contact_phone)}"
         )
         for detail in details
     )
@@ -448,13 +449,7 @@ def write_volunteer_schedule_pdf(
                     ),
                     Paragraph(
                         "GRUPPO PRINCIPALE "
-                        f"{_paragraph_text(entry.group_code)}"
-                        + (
-                            " · GRUPPO UNITO "
-                            f"{_union_groups_text(entry.union_group_code)}"
-                            if entry.union_group_code
-                            else ""
-                        ),
+                        f"{_paragraph_text(entry.group_code)}",
                         styles["day"],
                     ),
                 ],
@@ -643,8 +638,11 @@ def write_user_guide_pdf(
             "In <b>UNIONI</b> puoi indicare uno o più codici separati da "
             "<b>;</b>, direttamente oppure nelle forme "
             "<b>(include CODICE)</b> e <b>(aggregato CODICE)</b>. I codici "
-            "vengono mostrati uno per riga e si applicano sia alla Mattina "
-            "sia al Pomeriggio del giorno.",
+            "devono esistere nella colonna <b>Codice Gruppo</b> e si applicano "
+            "sia alla Mattina sia al Pomeriggio del giorno. Nel PDF del "
+            "volontario, ogni gruppo unito viene mostrato con codice, referente "
+            "e numero di telefono. <b>Auto Ospiti</b> e <b>Note</b> non vengono "
+            "mostrati.",
             styles["body"],
         ),
         Paragraph("Se compare un errore", styles["guide_heading"]),

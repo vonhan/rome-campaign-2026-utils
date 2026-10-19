@@ -17,11 +17,43 @@ from src.excel_parser import (
 def test_read_appointments_understands_definitive_header_shape(
     tmp_path: Path, synthetic_workbook_v2
 ) -> None:
-    workbook_path = synthetic_workbook_v2(tmp_path / "synthetic.xlsx")
+    workbook_path = synthetic_workbook_v2(
+        tmp_path / "synthetic.xlsx",
+        [
+            [
+                "RM-01",
+                "Referente Sintetico",
+                "+39 333 444 5555",
+                "Sala Centro",
+                4,
+                "Auto blu",
+                "ROSSI MARIO 0001112222; VERDI PAOLO 0003334444",
+                "",
+                "(include JOINED001)",
+                "BIANCHI LUCA 0005556666",
+                "",
+                "",
+            ],
+            [
+                "JOINED001",
+                "Referente Unito",
+                "0007778888",
+                "Sala Unita",
+                2,
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+            ],
+        ],
+    )
 
     appointments = read_appointments(workbook_path)
 
-    assert len(appointments) == 1
+    assert len(appointments) == 2
     appointment = appointments[0]
     assert appointment.group_code == "RM-01"
     assert appointment.group_contact == "Referente Sintetico"
@@ -205,6 +237,39 @@ def test_parse_union_group_rejects_ambiguous_values(raw: str) -> None:
 def test_duplicate_union_codes_are_rejected() -> None:
     with pytest.raises(ValueError, match="ripetuto"):
         parse_union_group("CODE1; (include code1)")
+
+
+def test_unknown_union_codes_are_aggregated_with_source_coordinates(
+    tmp_path: Path, synthetic_workbook_v2
+) -> None:
+    path = synthetic_workbook_v2(
+        tmp_path / "unknown-unions.xlsx",
+        [
+            [
+                "PRIMARY001",
+                "Referente Principale",
+                "0000000001",
+                "Sala",
+                1,
+                "",
+                "ROSSI MARIO 0000000002",
+                "",
+                "MISSING001; MISSING002",
+                "",
+                "",
+                "",
+            ]
+        ],
+    )
+
+    with pytest.raises(WorkbookValidationError) as raised:
+        read_appointments(path)
+
+    assert [issue.cell for issue in raised.value.issues] == ["I3", "I3"]
+    assert [issue.field for issue in raised.value.issues] == ["UNIONI", "UNIONI"]
+    assert "MISSING001" in str(raised.value)
+    assert "MISSING002" in str(raised.value)
+    assert "colonna Codice Gruppo" in str(raised.value)
 
 
 def test_validation_errors_are_aggregated_with_coordinates_without_values(

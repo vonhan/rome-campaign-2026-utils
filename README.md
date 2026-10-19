@@ -122,6 +122,11 @@ delegato e volontario. Nel PDF del volontario sono inoltre riportati il
 capogruppo del gruppo unito e il suo numero di telefono, mentre i campi
 `Auto Ospiti` e `Note` non compaiono.
 
+Ogni codice indicato in `UNIONI` deve essere presente nella colonna
+`Codice Gruppo` del foglio. Il programma recupera dalla stessa riga il
+`Referente Gruppo` e il `Telefono Referente`. Se un codice non viene trovato,
+la generazione viene bloccata e il log indica la cella `UNIONI` da correggere.
+
 Se il programma trova celle non valide, blocca la generazione e mostra tutti
 gli errori insieme. Nella GUI i dettagli sono nel riquadro **Log elaborazione**;
 da terminale vengono scritti su `stderr`. Ogni errore indica foglio, cella,

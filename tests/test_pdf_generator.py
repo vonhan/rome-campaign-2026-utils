@@ -76,6 +76,10 @@ def test_user_guide_pdf_contains_usage_and_privacy_instructions(
     assert "UNIONI" in text
     assert "NOME COMPLETO TELEFONO" in text
     assert "punto e virgola" in text
+    assert "Codice Gruppo" in text
+    assert "codice, referente e numero di telefono" in text
+    assert "Auto Ospiti" in text
+    assert "non vengono mostrati" in text
     assert "Log elaborazione" in text
     assert "Protezione dei dati" in text
     assert "senza allegare il file Excel" in text

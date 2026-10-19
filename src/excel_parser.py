@@ -308,6 +308,39 @@ def read_appointments(path: str | Path) -> list[Appointment]:
                     source_row_number=row_number,
                 )
             )
+
+        known_group_codes = {
+            appointment.group_code.upper()
+            for appointment in appointments
+            if appointment.group_code
+        }
+        for appointment in appointments:
+            for assignment, assignment_columns_for_date in zip(
+                appointment.assignments,
+                assignment_columns,
+                strict=True,
+            ):
+                date_label, _morning, _afternoon, union, _note = (
+                    assignment_columns_for_date
+                )
+                for code in assignment.union_group_code:
+                    if code.upper() not in known_group_codes:
+                        issues.append(
+                            ValidationIssue(
+                                sheet=worksheet.title,
+                                cell=(
+                                    f"{get_column_letter(union + 1)}"
+                                    f"{appointment.source_row_number}"
+                                ),
+                                row_number=appointment.source_row_number,
+                                date_label=date_label,
+                                field="UNIONI",
+                                reason=(
+                                    f"Il codice gruppo '{code}' non è presente "
+                                    "nella colonna Codice Gruppo."
+                                ),
+                            )
+                        )
         if issues:
             raise WorkbookValidationError(issues)
         return appointments

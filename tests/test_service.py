@@ -6,6 +6,7 @@ import pytest
 from pypdf import PdfReader
 
 from src import service
+from src.diagnostics import WorkbookValidationError
 
 
 def _pdf_text(path: Path) -> str:
@@ -382,7 +383,7 @@ def test_union_group_and_delegate_phone_reach_both_slots_and_pdf_modes(
         [
             [
                 "PRIMARY001",
-                "Referente Ospite",
+                "Referente Principale",
                 "3334445555",
                 "Sala Sintetica",
                 4,
@@ -393,7 +394,49 @@ def test_union_group_and_delegate_phone_reach_both_slots_and_pdf_modes(
                 "",
                 "",
                 "",
-            ]
+            ],
+            [
+                "JOINED001",
+                "Referente Unito Uno",
+                "1111111111",
+                "Sala Unita Uno",
+                2,
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+            ],
+            [
+                "JOINED002",
+                "Referente Unito Due",
+                "2222222222",
+                "Sala Unita Due",
+                3,
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+            ],
+            [
+                "JOINED003",
+                "Referente Unito Tre",
+                "3333333333",
+                "Sala Unita Tre",
+                5,
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+            ],
         ],
     )
 
@@ -408,12 +451,18 @@ def test_union_group_and_delegate_phone_reach_both_slots_and_pdf_modes(
     for path in volunteer_result.appointment_files:
         text = " ".join(_pdf_text(path).split())
         assert "GRUPPO PRINCIPALE PRIMARY001" in text
-        assert "GRUPPO UNITO JOINED001" in text
+        assert "GRUPPI UNITI" in text
+        assert "JOINED001" in text
         assert "JOINED002" in text
         assert "JOINED003" in text
-        assert "Referente Ospite" in text
+        assert "Referente Unito Uno" in text
+        assert "1111111111" in text
+        assert "Referente Unito Due" in text
+        assert "2222222222" in text
+        assert "Referente Unito Tre" in text
+        assert "3333333333" in text
+        assert "Referente Principale" in text
         assert "3334445555" in text
-        assert "Capogruppo" in text
     assert any(
         "Mattina" in _pdf_text(path)
         for path in volunteer_result.appointment_files
@@ -431,9 +480,12 @@ def test_union_group_and_delegate_phone_reach_both_slots_and_pdf_modes(
         "assets/icon.png",
         mode="delegato",
     )
-    delegate_text = " ".join(
-        _pdf_text(delegate_result.appointment_files[0]).split()
+    primary_pdf = next(
+        path
+        for path in delegate_result.appointment_files
+        if "PRIMARY001" in _pdf_text(path)
     )
+    delegate_text = " ".join(_pdf_text(primary_pdf).split())
     assert "Principale: PRIMARY001" in delegate_text
     assert "Unito: JOINED001" in delegate_text
     assert "3334445555" in delegate_text
@@ -471,4 +523,41 @@ def test_validation_failure_publishes_no_documents(
             mode="volontario",
         )
 
+    assert not destination.exists()
+
+
+def test_unknown_union_group_publishes_no_documents(
+    tmp_path: Path, synthetic_workbook_v2
+) -> None:
+    workbook = synthetic_workbook_v2(
+        tmp_path / "unknown-union.xlsx",
+        [
+            [
+                "PRIMARY001",
+                "Referente Principale",
+                "3334445555",
+                "Sala Sintetica",
+                4,
+                "",
+                "ROSSI MARIO 0000000001",
+                "",
+                "MISSING001",
+                "",
+                "",
+                "",
+            ]
+        ],
+    )
+    destination = tmp_path / "out"
+
+    with pytest.raises(WorkbookValidationError) as raised:
+        service.generate_documents(
+            workbook,
+            destination,
+            "assets/icon.png",
+            mode="volontario",
+        )
+
+    assert [issue.cell for issue in raised.value.issues] == ["I3"]
+    assert "MISSING001" in str(raised.value)
     assert not destination.exists()

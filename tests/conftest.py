@@ -152,7 +152,7 @@ def synthetic_workbook_v2() -> Callable[[Path, list[list[object]] | None], Path]
                 "Auto blu",
                 "ROSSI MARIO 0001112222; VERDI PAOLO 0003334444",
                 "",
-                "(include JOINED001)",
+                "",
                 "BIANCHI LUCA 0005556666",
                 "",
                 "",
