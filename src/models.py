@@ -55,6 +55,7 @@ class DayAssignment:
 class Appointment:
     group_code: str = ""
     group_contact: str = ""
+    group_contact_phone: str = ""
     kingdom_hall: str = ""
     guest_count: str = ""
     guest_vehicle: str = ""
@@ -75,6 +76,7 @@ class VolunteerScheduleEntry:
     note: str = ""
     source_row_number: int = 0
     group_contact: str = ""
+    group_contact_phone: str = ""
     kingdom_hall: str = ""
     guest_count: str = ""
     guest_vehicle: str = ""

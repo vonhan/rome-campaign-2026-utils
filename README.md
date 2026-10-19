@@ -75,18 +75,23 @@ Il primo foglio deve avere due righe di intestazione:
 Le celle Mattina e Pomeriggio possono contenere un accompagnatore nel formato:
 
 ```text
-COGNOME, NOME: NUMERO_TELEFONO
+COGNOME NOME NUMERO_TELEFONO
 ```
+
+Per compatibilità si continua a supportare anche il formato legacy `COGNOME, NOME: NUMERO_TELEFONO`.
 
 Se più volontari condividono la stessa fascia, separarli con ` e `:
 
 ```text
-ROSSI, MARIO: 0000000001 e VERDI, PAOLO: 0000000002
+ROSSI MARIO 0000000001 e VERDI PAOLO 0000000002
 ```
 
 In modalità volontario l'appuntamento viene inserito nel PDF di ciascuna
 persona, senza creare un unico PDF con i nomi combinati. Sono accettati anche
 il punto e virgola o una nuova riga come separatori.
+
+La colonna `Telefono Referente` (inserita in posizione C nel nuovo schema del
+file v2) viene mostrata nei PDF sia del delegato sia del volontario.
 
 I dati parziali vengono conservati e mostrati senza inventare informazioni
 mancanti. Righe con tutti e cinque i campi principali vuoti vengono ignorate.

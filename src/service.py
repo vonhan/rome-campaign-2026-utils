@@ -115,6 +115,7 @@ def _build_volunteer_schedules(
                         note=assignment.note,
                         source_row_number=appointment.source_row_number,
                         group_contact=appointment.group_contact,
+                        group_contact_phone=appointment.group_contact_phone,
                         kingdom_hall=appointment.kingdom_hall,
                         guest_count=appointment.guest_count,
                         guest_vehicle=appointment.guest_vehicle,

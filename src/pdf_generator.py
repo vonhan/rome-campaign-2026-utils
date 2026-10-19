@@ -235,10 +235,18 @@ def write_appointment_pdf(
 
     info_rows = [
         (_icon("group"), "REFERENTE GRUPPO", appointment.group_contact),
-        (_icon("location"), "SALA DEL REGNO", appointment.kingdom_hall),
-        (_icon("group"), "NUMERO OSPITI", appointment.guest_count),
-        (_icon("car"), "AUTO OSPITI", appointment.guest_vehicle),
     ]
+    if appointment.group_contact_phone:
+        info_rows.append(
+            (_icon("group"), "TELEFONO REFERENTE", appointment.group_contact_phone)
+        )
+    info_rows.extend(
+        [
+            (_icon("location"), "SALA DEL REGNO", appointment.kingdom_hall),
+            (_icon("group"), "NUMERO OSPITI", appointment.guest_count),
+            (_icon("car"), "AUTO OSPITI", appointment.guest_vehicle),
+        ]
+    )
     info_table = Table(
         [
             [
@@ -419,6 +427,13 @@ def write_volunteer_schedule_pdf(
                     Paragraph("CAPOGRUPPO DELEGATO", styles["label"]),
                     Paragraph(
                         _paragraph_text(entry.group_contact),
+                        styles["body"],
+                    ),
+                ],
+                [
+                    Paragraph("TELEFONO REFERENTE", styles["label"]),
+                    Paragraph(
+                        _paragraph_text(entry.group_contact_phone or "—"),
                         styles["body"],
                     ),
                 ],

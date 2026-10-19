@@ -137,3 +137,43 @@ def test_corrupted_xlsx_is_reported_clearly(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="Impossibile leggere il file Excel"):
         read_appointments(path)
+
+
+def test_read_appointments_supports_v2_delegate_phone_and_name_format(
+    tmp_path: Path, synthetic_workbook_v2
+) -> None:
+    workbook_path = synthetic_workbook_v2(tmp_path / "v2.xlsx")
+
+    appointments = read_appointments(workbook_path)
+
+    assert len(appointments) == 1
+    appointment = appointments[0]
+    assert appointment.group_contact_phone == "+39 333 444 5555"
+    assert appointment.assignments[0].morning[0].surname == "ROSSI"
+    assert appointment.assignments[0].morning[0].name == "MARIO"
+    assert appointment.assignments[0].morning[0].phone == "0001112222"
+    assert appointment.assignments[0].morning[1].surname == "VERDI"
+    assert appointment.assignments[0].morning[1].name == "PAOLO"
+    assert appointment.assignments[0].morning[1].phone == "0003334444"
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("ROSSI MARIO 0001112222", ("ROSSI", "MARIO", "0001112222")),
+        ("ROSSI, MARIO: 0001112222", ("ROSSI", "MARIO", "0001112222")),
+        ("Dato non strutturato", None),
+    ],
+)
+def test_parse_volunteer_supports_legacy_and_v2_formats(
+    raw: str, expected: tuple[str, str, str] | None
+) -> None:
+    volunteer = parse_volunteer(raw)
+
+    if expected is None:
+        assert volunteer is not None
+        assert volunteer.raw == raw
+        return
+
+    assert volunteer is not None
+    assert (volunteer.surname, volunteer.name, volunteer.phone) == expected
