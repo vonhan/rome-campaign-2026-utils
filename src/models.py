@@ -44,7 +44,7 @@ class DayAssignment:
     date_label: str
     morning: tuple[Volunteer, ...] = ()
     afternoon: tuple[Volunteer, ...] = ()
-    union_group_code: str = ""
+    union_group_code: tuple[str, ...] = ()
     note: str = ""
 
 
@@ -68,7 +68,7 @@ class Appointment:
 class VolunteerScheduleEntry:
     volunteer: Volunteer
     group_code: str = ""
-    union_group_code: str = ""
+    union_group_code: tuple[str, ...] = ()
     date_label: str = ""
     slot: str = ""
     note: str = ""

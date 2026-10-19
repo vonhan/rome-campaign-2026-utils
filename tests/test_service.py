@@ -387,9 +387,9 @@ def test_union_group_and_delegate_phone_reach_both_slots_and_pdf_modes(
                 "Sala Sintetica",
                 4,
                 "Auto Sintetica",
-                "VERDI PAOLO 0000000001",
+                "VERDI PAOLO 000 000 0001",
                 "ROSSI SIMONE 0000000002",
-                "(include JOINED001)",
+                "(include JOINED001); (aggregato JOINED002); JOINED003",
                 "",
                 "",
                 "",
@@ -409,6 +409,8 @@ def test_union_group_and_delegate_phone_reach_both_slots_and_pdf_modes(
         text = " ".join(_pdf_text(path).split())
         assert "GRUPPO PRINCIPALE PRIMARY001" in text
         assert "GRUPPO UNITO JOINED001" in text
+        assert "JOINED002" in text
+        assert "JOINED003" in text
         assert "Referente Ospite" in text
         assert "3334445555" in text
     assert any(

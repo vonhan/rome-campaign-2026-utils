@@ -34,7 +34,7 @@ def test_read_appointments_understands_definitive_header_shape(
         "26/10 (Lunedì)",
         "27/10 (Martedì)",
     ]
-    assert appointment.assignments[0].union_group_code == "JOINED001"
+    assert appointment.assignments[0].union_group_code == ("JOINED001",)
     assert [
         (volunteer.full_name, volunteer.phone)
         for volunteer in appointment.assignments[0].morning
@@ -89,6 +89,11 @@ def test_read_appointments_keeps_every_non_empty_data_row(
             "DE ROSSI MARIA LUISA",
             "0009990000",
         ),
+        (
+            "DE ROSSI MARIA LUISA 000 999 0000",
+            "DE ROSSI MARIA LUISA",
+            "0009990000",
+        ),
     ],
 )
 def test_parse_volunteer_preserves_full_name(
@@ -99,7 +104,7 @@ def test_parse_volunteer_preserves_full_name(
     assert volunteer is not None
     assert volunteer.full_name == name
     assert volunteer.phone == phone
-    assert volunteer.display == raw
+    assert volunteer.display == f"{name} {phone}"
 
 
 def test_parse_volunteer_returns_none_for_empty_value() -> None:
@@ -163,11 +168,16 @@ def test_duplicate_volunteer_in_same_cell_is_rejected() -> None:
 @pytest.mark.parametrize(
     ("raw", "expected"),
     [
-        ("UNITO0000001", "UNITO0000001"),
-        ("(include UNITO0000001)", "UNITO0000001"),
-        ("(aggregato unito0000001)", "UNITO0000001"),
-        ("", ""),
-        (None, ""),
+        ("UNITO0000001", ("UNITO0000001",)),
+        ("(include UNITO0000001)", ("UNITO0000001",)),
+        ("(aggregato unito0000001)", ("UNITO0000001",)),
+        ("UNITO0000001; ALTRO000001", ("UNITO0000001", "ALTRO000001")),
+        (
+            "UNITO0000001; (aggregato altro000001); (include TERZO0001)",
+            ("UNITO0000001", "ALTRO000001", "TERZO0001"),
+        ),
+        ("", ()),
+        (None, ()),
     ],
 )
 def test_parse_union_group_accepts_documented_forms(
@@ -182,13 +192,19 @@ def test_parse_union_group_accepts_documented_forms(
         "(include UNITO0000001",
         "include UNITO0000001",
         "(unito UNITO0000001)",
-        "UNITO0000001; ALTRO000001",
         "(include UNITO0000001 ALTRO000001)",
+        "UNITO0000001;",
+        "UNITO0000001;;ALTRO000001",
     ],
 )
 def test_parse_union_group_rejects_ambiguous_values(raw: str) -> None:
     with pytest.raises(ValueError, match="Formato UNIONI non valido"):
         parse_union_group(raw)
+
+
+def test_duplicate_union_codes_are_rejected() -> None:
+    with pytest.raises(ValueError, match="ripetuto"):
+        parse_union_group("CODE1; (include code1)")
 
 
 def test_validation_errors_are_aggregated_with_coordinates_without_values(

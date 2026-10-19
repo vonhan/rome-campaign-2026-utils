@@ -82,9 +82,11 @@ Le celle Mattina e Pomeriggio possono contenere un accompagnatore nel formato:
 NOME COMPLETO NUMERO_TELEFONO
 ```
 
-Il numero di telefono deve essere l'ultimo elemento e deve contenere soltanto
-cifre. Tutto il testo che lo precede viene considerato il nome completo, senza
-tentare di separare nome e cognome.
+Il numero di telefono deve essere l'ultimo elemento e deve contenere cifre,
+anche separate da spazi, ad esempio `392 2613735`. Gli spazi vengono rimossi
+durante la normalizzazione e nei PDF il numero viene mostrato come
+`3922613735`. Tutto il testo che precede il telefono viene considerato il nome
+completo, senza tentare di separare nome e cognome.
 
 Se più volontari condividono la stessa fascia, separarli esclusivamente con
 un punto e virgola:
@@ -97,8 +99,8 @@ In modalità volontario l'appuntamento viene inserito nel PDF di ciascuna
 persona, senza creare un unico PDF con i nomi combinati. Il vecchio formato
 `COGNOME, NOME: NUMERO_TELEFONO` e gli altri separatori non sono accettati.
 
-La colonna `UNIONI` può essere vuota oppure contenere un solo codice in una
-delle forme seguenti:
+La colonna `UNIONI` può essere vuota oppure contenere uno o più codici separati
+da `;`. Ogni elemento può usare una delle forme seguenti, anche mescolate:
 
 ```text
 UNITO0000001
@@ -106,9 +108,16 @@ UNITO0000001
 (aggregato UNITO0000001)
 ```
 
-Il codice unito si applica sia alla Mattina sia al Pomeriggio di quel giorno e
-viene mostrato, insieme al codice gruppo principale, nei PDF delegato e
-volontario. `Telefono Referente` viene mostrato in entrambi i tipi di PDF.
+Esempio:
+
+```text
+UNITO0000001; (include UNITO0000002); (aggregato UNITO0000003)
+```
+
+I codici uniti si applicano sia alla Mattina sia al Pomeriggio di quel giorno e
+vengono mostrati uno per riga, insieme al codice gruppo principale, nei PDF
+delegato e volontario. `Telefono Referente` viene mostrato in entrambi i tipi
+di PDF.
 
 Se il programma trova celle non valide, blocca la generazione e mostra tutti
 gli errori insieme. Nella GUI i dettagli sono nel riquadro **Log elaborazione**;

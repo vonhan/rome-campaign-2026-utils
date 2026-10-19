@@ -15,7 +15,7 @@ from src.models import Appointment, DayAssignment, Volunteer
 
 _DATE_RE = re.compile(r"^\d{1,2}/\d{1,2}(?:\s|$)")
 _NEW_VOLUNTEER_RE = re.compile(
-    r"^(?P<full_name>[^\d,;:]+?\S)\s+(?P<phone>\d+)$",
+    r"^(?P<full_name>[^\d,;:]+?\S)\s+(?P<phone>\d+(?:\s+\d+)*)$",
 )
 _UNION_RE = re.compile(
     r"^(?:"
@@ -68,10 +68,12 @@ def parse_volunteer(value: object) -> Volunteer | None:
             "Formato volontario non valido; usare NOME COMPLETO TELEFONO, "
             "con telefono finale composto da sole cifre."
         )
+    full_name = match.group("full_name").strip()
+    phone = re.sub(r"\s+", "", match.group("phone"))
     return Volunteer(
-        raw=raw,
-        full_name=match.group("full_name").strip(),
-        phone=match.group("phone"),
+        raw=f"{full_name} {phone}",
+        full_name=full_name,
+        phone=phone,
     )
 
 
@@ -101,17 +103,25 @@ def parse_volunteers(value: object) -> tuple[Volunteer, ...]:
     return tuple(volunteers)
 
 
-def parse_union_group(value: object) -> str:
+def parse_union_group(value: object) -> tuple[str, ...]:
     raw = re.sub(r"\s+", " ", _clean(value))
     if not raw:
-        return ""
-    match = _UNION_RE.fullmatch(raw)
-    if not match:
-        raise ValueError(
-            "Formato UNIONI non valido; usare CODICE, (include CODICE) "
-            "oppure (aggregato CODICE)."
-        )
-    return (match.group("direct") or match.group("wrapped")).upper()
+        return ()
+
+    codes: list[str] = []
+    for item in raw.split(";"):
+        item = item.strip()
+        match = _UNION_RE.fullmatch(item)
+        if not match:
+            raise ValueError(
+                "Formato UNIONI non valido; usare uno o più codici separati "
+                "da ';', con CODICE, (include CODICE) o (aggregato CODICE)."
+            )
+        code = (match.group("direct") or match.group("wrapped")).upper()
+        if code in codes:
+            raise ValueError("Il codice UNIONI è ripetuto nella medesima cella.")
+        codes.append(code)
+    return tuple(codes)
 
 
 def _find_date_columns(header_row: Sequence[object]) -> list[int]:
@@ -277,7 +287,7 @@ def read_appointments(path: str | Path) -> list[Appointment]:
                             reason=str(exc),
                         )
                     )
-                    union_group_code = ""
+                    union_group_code = ()
                 assignments.append(
                     DayAssignment(
                         date_label=date_label,

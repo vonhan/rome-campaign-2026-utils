@@ -43,6 +43,10 @@ def _volunteer_text(volunteers: tuple[Volunteer, ...]) -> str:
     )
 
 
+def _union_groups_text(codes: tuple[str, ...]) -> str:
+    return "<br/>".join(_paragraph_text(code) for code in codes)
+
+
 def _logo_image(logo_path: str | Path) -> Image:
     path = Path(logo_path)
     width, height = ImageReader(str(path)).getSize()
@@ -303,7 +307,7 @@ def write_appointment_pdf(
                     f"{_paragraph_text(appointment.group_code)}"
                     + (
                         "<br/><b>Unito:</b> "
-                        f"{_paragraph_text(assignment.union_group_code)}"
+                        f"{_union_groups_text(assignment.union_group_code)}"
                         if assignment.union_group_code
                         else ""
                     ),
@@ -435,7 +439,7 @@ def write_volunteer_schedule_pdf(
                         f"{_paragraph_text(entry.group_code)}"
                         + (
                             " · GRUPPO UNITO "
-                            f"{_paragraph_text(entry.union_group_code)}"
+                            f"{_union_groups_text(entry.union_group_code)}"
                             if entry.union_group_code
                             else ""
                         ),
@@ -622,15 +626,17 @@ def write_user_guide_pdf(
             "Ogni giorno deve contenere le colonne <b>Mattina</b>, "
             "<b>Pomeriggio</b> e <b>UNIONI</b>. "
             "Scrivi ogni volontario come <b>NOME COMPLETO TELEFONO</b>, "
-            "con il telefono finale composto da sole cifre. Se i volontari "
-            "sono più di uno, separali soltanto con il punto e virgola.",
+            "con il telefono finale composto da cifre, eventualmente separate "
+            "da spazi. Gli spazi vengono rimossi nei PDF. Se i volontari sono "
+            "più di uno, separali soltanto con il punto e virgola.",
             styles["body"],
         ),
         Paragraph(
-            "In <b>UNIONI</b> puoi indicare un singolo codice direttamente, "
-            "oppure nelle forme <b>(include CODICE)</b> e "
-            "<b>(aggregato CODICE)</b>. Il gruppo unito si applica sia alla "
-            "Mattina sia al Pomeriggio del giorno.",
+            "In <b>UNIONI</b> puoi indicare uno o più codici separati da "
+            "<b>;</b>, direttamente oppure nelle forme "
+            "<b>(include CODICE)</b> e <b>(aggregato CODICE)</b>. I codici "
+            "vengono mostrati uno per riga e si applicano sia alla Mattina "
+            "sia al Pomeriggio del giorno.",
             styles["body"],
         ),
         Paragraph("Se compare un errore", styles["guide_heading"]),
