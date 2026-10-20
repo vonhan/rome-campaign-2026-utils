@@ -7,6 +7,7 @@ from pypdf import PdfReader
 
 from src import service
 from src.diagnostics import WorkbookValidationError
+from src.models import Appointment, DayAssignment, Volunteer
 
 
 def _pdf_text(path: Path) -> str:
@@ -489,6 +490,36 @@ def test_union_group_and_delegate_phone_reach_both_slots_and_pdf_modes(
     assert "Principale: PRIMARY001" in delegate_text
     assert "Unito: JOINED001" in delegate_text
     assert "3334445555" in delegate_text
+
+
+def test_same_day_volunteer_entries_keep_morning_before_afternoon() -> None:
+    volunteer = Volunteer(
+        raw="ROSSI MARIO 0000000001",
+        full_name="ROSSI MARIO",
+        phone="0000000001",
+    )
+    appointment = Appointment(
+        group_code="RM-01",
+        group_contact="Referente",
+        group_contact_phone="3334445555",
+        kingdom_hall="Sala Test",
+        guest_count="4",
+        assignments=[
+            DayAssignment(
+                date_label="01/11 (Domenica)",
+                morning=(volunteer,),
+                afternoon=(volunteer,),
+            )
+        ],
+        source_row_number=3,
+    )
+
+    schedule = service._build_volunteer_schedules([appointment])[0]
+
+    assert [entry.slot for entry in schedule.entries] == [
+        "Mattina",
+        "Pomeriggio",
+    ]
 
 
 def test_validation_failure_publishes_no_documents(

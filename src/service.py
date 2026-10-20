@@ -164,12 +164,20 @@ def _build_volunteer_schedules(
             item[0].phone.casefold(),
         ),
     ):
+        def _slot_rank(entry: VolunteerScheduleEntry) -> int:
+            slot = str(entry.slot or "").strip().casefold()
+            if slot == "mattina":
+                return 0
+            if slot == "pomeriggio":
+                return 1
+            return 99
+
         sorted_entries = sorted(
             entries,
             key=lambda entry: (
                 entry.date_order,
+                _slot_rank(entry),
                 entry.source_row_number,
-                0 if entry.slot == "Mattina" else 1,
             ),
         )
         ordered.append(
