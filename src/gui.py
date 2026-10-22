@@ -17,6 +17,7 @@ class App(tk.Tk):
         self.input_var = tk.StringVar()
         self.output_var = tk.StringVar()
         self.mode_var = tk.StringVar(value="delegato")
+        self.volunteer_var = tk.StringVar()
         self.status_var = tk.StringVar(
             value="Seleziona il file Excel e la cartella di destinazione."
         )
@@ -58,6 +59,15 @@ class App(tk.Tk):
                 variable=self.mode_var,
                 value=value,
             ).pack(anchor="w", padx=12, pady=3)
+
+        ttk.Label(
+            mode_frame,
+            text="Volontario singolo (NOME_COMPLETO NUMERO_TELEFONO, opzionale)",
+        ).pack(anchor="w", padx=12, pady=(8, 2))
+        ttk.Entry(
+            mode_frame,
+            textvariable=self.volunteer_var,
+        ).pack(fill="x", padx=12, pady=(0, 8))
 
         self.generate_button = ttk.Button(
             container,
@@ -124,6 +134,8 @@ class App(tk.Tk):
     def generate(self) -> None:
         source = self.input_var.get().strip()
         output = self.output_var.get().strip()
+        volunteer_var = getattr(self, "volunteer_var", None)
+        volunteer = volunteer_var.get().strip() if volunteer_var else ""
         if not source:
             self._set_log("Errore: selezionare un file Excel.")
             messagebox.showerror("File mancante", "Seleziona un file Excel.")
@@ -141,7 +153,15 @@ class App(tk.Tk):
         self.update_idletasks()
         try:
             mode = self.mode_var.get()
-            result = generate_documents(source, output, mode=mode)
+            if volunteer:
+                result = generate_documents(
+                    source,
+                    output,
+                    mode=mode,
+                    volunteer_filter=volunteer,
+                )
+            else:
+                result = generate_documents(source, output, mode=mode)
         except (OSError, ValueError) as exc:
             self.status_var.set("Generazione non completata.")
             self._set_log(str(exc))
@@ -154,7 +174,11 @@ class App(tk.Tk):
             subject = (
                 "capogruppo delegato"
                 if self.mode_var.get() == "delegato"
-                else "capogruppo volontario"
+                else (
+                    "volontario selezionato"
+                    if volunteer
+                    else "capogruppo volontario"
+                )
             )
             self.status_var.set(
                 f"Completato: {len(result.appointment_files)} PDF per "

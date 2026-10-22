@@ -44,7 +44,9 @@ workflow **Test e pacchetto Windows** (sezione *Artifacts*, in fondo alla run).
 5. Scegliere la modalità di generazione:
    - `Appuntamenti per capogruppo Delegato` per un PDF per ogni riga;
    - `Appuntamenti per capogruppo Volontario` per un PDF per ogni volontario con tutti i suoi appuntamenti.
-6. Premere **Genera PDF**.
+6. Se necessario, nella modalità volontario inserire il filtro opzionale
+   `NOME_COMPLETO NUMERO_TELEFONO` per generare il PDF di una sola persona.
+7. Premere **Genera PDF**.
 
 Nella cartella scelta vengono creati:
 
@@ -53,6 +55,8 @@ Nella cartella scelta vengono creati:
   vuota del foglio;
 - nella modalità volontario, un file `Volontario-Nome-Completo-...pdf` per ogni
   volontario distinto, con tutti i suoi appuntamenti;
+- se è indicato un volontario singolo, un solo PDF con tutti gli appuntamenti
+  trovati per quella persona;
 - `Guida-uso.pdf`, con le istruzioni per l'operatore.
 
 Ogni appuntamento del PDF volontario riporta codice gruppo principale,
@@ -70,8 +74,8 @@ Non è necessario installare Python.
 Il primo foglio deve avere due righe di intestazione:
 
 - prima riga: `Codice Gruppo`, `Referente Gruppo`, `Telefono Referente`,
-  `Sala del Regno`, `N. Ospiti`, `Auto Ospiti`, seguiti dai blocchi data come
-  `26/10 (Lunedì)`;
+  `Cod. ID. Gruppo`, `Sala del Regno`, `N. Ospiti`, `Auto Ospiti`, seguiti
+  dai blocchi data come `26/10 (Lunedì)`;
 - seconda riga, per ogni data: `Mattina`, `Pomeriggio`, `UNIONI`.
 
 Se un file contiene anche una colonna `NOTE` nel blocco giornaliero, il
@@ -127,6 +131,9 @@ Ogni codice indicato in `UNIONI` deve essere presente nella colonna
 `Referente Gruppo` e il `Telefono Referente`. Se un codice non viene trovato,
 la generazione viene bloccata e il log indica la cella `UNIONI` da correggere.
 
+Il codice `Cod. ID. Gruppo` viene riportato nel PDF volontario come
+`CODICE IDENTIFICATIVO PER RICONOSCIMENTO`.
+
 Se il programma trova celle non valide, blocca la generazione e mostra tutti
 gli errori insieme. Nella GUI i dettagli sono nel riquadro **Log elaborazione**;
 da terminale vengono scritti su `stderr`. Ogni errore indica foglio, cella,
@@ -172,6 +179,18 @@ python main.py --input "/percorso/appuntamenti.xlsx" --output "/percorso/pdf" --
 
 La modalità volontario considera uguali le occorrenze con lo stesso nome
 completo e telefono, ignorando differenze di maiuscole e spazi.
+
+Per generare il PDF di un solo volontario:
+
+```bash
+python main.py --input "/percorso/appuntamenti.xlsx" \
+  --output "/percorso/pdf" --mode volontario \
+  --volunteer "ROSSI MARIO 0000000001"
+```
+
+Il filtro raccoglie tutti gli appuntamenti della persona in un unico PDF.
+Se il volontario non viene trovato, il comando termina con errore e non
+pubblica PDF.
 
 Per generare soltanto la guida:
 

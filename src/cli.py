@@ -20,6 +20,13 @@ def run_cli(argv: list[str] | None = None) -> int:
         help="Modalità di generazione: delegato o volontario.",
     )
     parser.add_argument(
+        "--volunteer",
+        help=(
+            "Genera soltanto il PDF del volontario indicato nel formato "
+            "NOME_COMPLETO NUMERO_TELEFONO. Richiede --mode volontario."
+        ),
+    )
+    parser.add_argument(
         "--guide-only",
         metavar="PDF",
         help="Genera soltanto la guida utente nel percorso indicato.",
@@ -38,7 +45,13 @@ def run_cli(argv: list[str] | None = None) -> int:
         if not args.input or not args.output:
             parser.error("--input e --output sono obbligatori.")
 
-        result = generate_documents(args.input, args.output, args.logo, mode=args.mode)
+        result = generate_documents(
+            args.input,
+            args.output,
+            args.logo,
+            mode=args.mode,
+            volunteer_filter=args.volunteer,
+        )
     except (OSError, ValueError) as exc:
         print(f"Errore: {exc}", file=sys.stderr)
         return 1
@@ -46,7 +59,11 @@ def run_cli(argv: list[str] | None = None) -> int:
     subject = (
         "capogruppo delegato"
         if args.mode in {"delegato", "delegate"}
-        else "capogruppo volontario"
+        else (
+            "volontario selezionato"
+            if args.volunteer
+            else "capogruppo volontario"
+        )
     )
     print(
         f"Generati {len(result.appointment_files)} PDF per {subject} "

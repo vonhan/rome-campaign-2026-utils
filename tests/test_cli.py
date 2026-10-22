@@ -132,6 +132,88 @@ def test_cli_can_generate_volunteer_schedules(
     assert "Generati 2 PDF per capogruppo volontario" in capsys.readouterr().out
 
 
+def test_cli_can_generate_one_selected_volunteer(
+    tmp_path: Path, synthetic_workbook, capsys
+) -> None:
+    workbook_path = synthetic_workbook(
+        tmp_path / "input.xlsx",
+        [
+            [
+                "RM-01",
+                "Referente Uno",
+                "Sala A",
+                1,
+                "",
+                "ROSSI MARIO 111",
+                "",
+                "",
+                "",
+                "",
+                "",
+            ],
+            [
+                "RM-02",
+                "Referente Due",
+                "Sala B",
+                2,
+                "",
+                "",
+                "",
+                "",
+                "ROSSI MARIO 111",
+                "",
+                "",
+            ],
+        ],
+    )
+    output_dir = tmp_path / "out"
+
+    exit_code = run_cli(
+        [
+            "--input",
+            str(workbook_path),
+            "--output",
+            str(output_dir),
+            "--mode",
+            "volontario",
+            "--volunteer",
+            "ROSSI MARIO 111",
+            "--logo",
+            "assets/icon.png",
+        ]
+    )
+
+    assert exit_code == 0
+    assert len(list(output_dir.glob("Volontario-*.pdf"))) == 1
+    assert "1 PDF per volontario selezionato" in capsys.readouterr().out
+
+
+def test_cli_reports_selected_volunteer_not_found(
+    tmp_path: Path, synthetic_workbook, capsys
+) -> None:
+    workbook_path = synthetic_workbook(tmp_path / "input.xlsx")
+    output_dir = tmp_path / "out"
+
+    exit_code = run_cli(
+        [
+            "--input",
+            str(workbook_path),
+            "--output",
+            str(output_dir),
+            "--mode",
+            "volontario",
+            "--volunteer",
+            "INESISTENTE 999",
+            "--logo",
+            "assets/icon.png",
+        ]
+    )
+
+    assert exit_code == 1
+    assert "Volontario non trovato" in capsys.readouterr().err
+    assert not output_dir.exists()
+
+
 def test_cli_reports_all_cell_errors_without_sensitive_values(
     tmp_path: Path, synthetic_workbook_v2, capsys
 ) -> None:
@@ -173,9 +255,9 @@ def test_cli_reports_all_cell_errors_without_sensitive_values(
     captured = capsys.readouterr()
     assert exit_code == 1
     assert "3 errori" in captured.err
-    assert "cella G3" in captured.err
     assert "cella H3" in captured.err
     assert "cella I3" in captured.err
+    assert "cella J3" in captured.err
     assert sensitive_value not in captured.err
     assert "Generati" not in captured.out
     assert not output_dir.exists()

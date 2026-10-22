@@ -83,6 +83,59 @@ def test_user_guide_pdf_contains_usage_and_privacy_instructions(
     assert "Log elaborazione" in text
     assert "Protezione dei dati" in text
     assert "senza allegare il file Excel" in text
+    assert "Cod. ID. Gruppo" in text
+    assert "NOME_COMPLETO NUMERO_TELEFONO" in text
+
+
+def test_volunteer_pdf_uses_v3_labels_and_identification_code(
+    tmp_path: Path,
+) -> None:
+    volunteer = Volunteer(
+        raw="ROSSI MARIO 111",
+        full_name="ROSSI MARIO",
+        phone="111",
+    )
+    entry = VolunteerScheduleEntry(
+        volunteer=volunteer,
+        group_code="RM-01",
+        date_label="26/10",
+        slot="Mattina",
+        group_contact="Referente",
+        group_contact_phone="222",
+        guest_count="4",
+        group_identification_code="ID-01",
+        other_volunteers=(Volunteer(raw="VERDI ANNA 333"),),
+    )
+    output = tmp_path / "volunteer.pdf"
+
+    write_volunteer_schedule_pdf(
+        volunteer,
+        [entry],
+        output,
+        Path("assets/icon.png"),
+    )
+
+    text = " ".join(_pdf_text(output).split())
+    expected = [
+        "CAPOGRUPPO OSPITE",
+        "TELEFONO CAPOGRUPPO",
+        "NUMERO COMPONENTI GRUPPO",
+        "ALTRI GRUPPI ASSOCIATI",
+        "VOLONTARI LOCALI ASSOCIATI",
+        "CODICE IDENTIFICATIVO PER RICONOSCIMENTO",
+        "ID-01",
+    ]
+    assert all(label in text for label in expected)
+    assert "CAPOGRUPPO DELEGATO" not in text
+    assert "TELEFONO REFERENTE" not in text
+    assert "NUMERO OSPITI" not in text
+    assert "ALTRI VOLONTARI" not in text
+    assert text.index("VOLONTARI LOCALI ASSOCIATI") > text.index(
+        "ALTRI GRUPPI ASSOCIATI"
+    )
+    assert text.index("CODICE IDENTIFICATIVO PER RICONOSCIMENTO") > text.index(
+        "VOLONTARI LOCALI ASSOCIATI"
+    )
 
 
 def test_typical_seven_day_appointment_fits_on_one_page(

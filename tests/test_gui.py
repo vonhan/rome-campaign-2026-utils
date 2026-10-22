@@ -115,3 +115,43 @@ def test_gui_writes_generation_error_to_log(monkeypatch, tmp_path: Path) -> None
     assert "cella I4" in logs[-1]
     assert "Log elaborazione" in dialogs[0]
     assert app.generate_button.states == ["disabled", "normal"]
+
+
+def test_gui_forwards_selected_volunteer(monkeypatch, tmp_path: Path) -> None:
+    captured: dict[str, str | None] = {}
+
+    def generate_documents(
+        source: str,
+        output: str,
+        *,
+        mode: str,
+        volunteer_filter: str | None = None,
+    ):
+        captured.update(
+            source=source,
+            output=output,
+            mode=mode,
+            volunteer_filter=volunteer_filter,
+        )
+        return GenerationResult(
+            appointment_files=(tmp_path / "result.pdf",),
+            guide_file=tmp_path / "Guida-uso.pdf",
+        )
+
+    monkeypatch.setattr(gui, "generate_documents", generate_documents)
+    monkeypatch.setattr(gui.messagebox, "showinfo", lambda *_args: None)
+    app = SimpleNamespace(
+        input_var=_Variable("input.xlsx"),
+        output_var=_Variable(str(tmp_path)),
+        mode_var=_Variable("volontario"),
+        volunteer_var=_Variable("ROSSI MARIO 111"),
+        status_var=_Variable(),
+        generate_button=_Button(),
+        _set_log=lambda _text: None,
+        update_idletasks=lambda: None,
+    )
+
+    App.generate(app)
+
+    assert captured["mode"] == "volontario"
+    assert captured["volunteer_filter"] == "ROSSI MARIO 111"

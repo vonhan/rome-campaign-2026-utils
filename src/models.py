@@ -53,6 +53,7 @@ class Appointment:
     group_code: str = ""
     group_contact: str = ""
     group_contact_phone: str = ""
+    group_identification_code: str = ""
     kingdom_hall: str = ""
     guest_count: str = ""
     guest_vehicle: str = ""
@@ -83,6 +84,7 @@ class VolunteerScheduleEntry:
     source_row_number: int = 0
     group_contact: str = ""
     group_contact_phone: str = ""
+    group_identification_code: str = ""
     kingdom_hall: str = ""
     guest_count: str = ""
     guest_vehicle: str = ""

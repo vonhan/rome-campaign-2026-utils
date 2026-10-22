@@ -37,6 +37,12 @@ _FIELD_ALIASES = {
         "referente telefono",
         "group contact phone",
     ),
+    "group_identification_code": (
+        "cod id gruppo",
+        "cod identificativo gruppo",
+        "codice identificativo gruppo",
+        "codice identificativo per riconoscimento",
+    ),
     "kingdom_hall": ("sala del regno", "sala", "regno", "kingdom hall"),
     "guest_count": ("n ospiti", "numero ospiti", "ospiti", "guests"),
     "guest_vehicle": ("auto ospiti", "auto", "veicolo ospiti", "car"),
@@ -142,6 +148,7 @@ def _find_base_columns(
     required_fields = {
         "group_code",
         "group_contact",
+        "group_identification_code",
         "kingdom_hall",
         "guest_count",
         "guest_vehicle",
@@ -155,21 +162,29 @@ def _find_base_columns(
             continue
         result[field] = index
 
+    if first_date_column != 7:
+        raise ValueError(
+            "Formato Excel non valido: è richiesto lo schema v3 con "
+            "'Cod. ID. Gruppo' in colonna D e il primo blocco data in colonna H."
+        )
+
     definitive_positions = {
         "group_code": 0,
         "group_contact": 1,
         "group_contact_phone": 2,
-        "kingdom_hall": 3,
-        "guest_count": 4,
-        "guest_vehicle": 5,
+        "group_identification_code": 3,
+        "kingdom_hall": 4,
+        "guest_count": 5,
+        "guest_vehicle": 6,
     }
     recognized_positions_match = all(
         result.get(field, position) == position
         for field, position in definitive_positions.items()
     )
-    if first_date_column == 6 and recognized_positions_match:
+    if recognized_positions_match:
         result.setdefault("group_contact_phone", 2)
-        result.setdefault("kingdom_hall", 3)
+        result.setdefault("group_identification_code", 3)
+        result.setdefault("kingdom_hall", 4)
 
     for field in required_fields:
         if field not in result:

@@ -454,14 +454,14 @@ def write_volunteer_schedule_pdf(
                     ),
                 ],
                 [
-                    Paragraph("CAPOGRUPPO DELEGATO", styles["label"]),
+                    Paragraph("CAPOGRUPPO OSPITE", styles["label"]),
                     Paragraph(
                         _paragraph_text(entry.group_contact),
                         styles["body"],
                     ),
                 ],
                 [
-                    Paragraph("TELEFONO REFERENTE", styles["label"]),
+                    Paragraph("TELEFONO CAPOGRUPPO", styles["label"]),
                     Paragraph(
                         _paragraph_text(entry.group_contact_phone or "—"),
                         styles["body"],
@@ -475,21 +475,21 @@ def write_volunteer_schedule_pdf(
                     ),
                 ],
                 [
-                    Paragraph("NUMERO OSPITI", styles["label"]),
+                    Paragraph("NUMERO COMPONENTI GRUPPO", styles["label"]),
                     Paragraph(
                         _paragraph_text(entry.guest_count),
                         styles["body"],
                     ),
                 ],
                 [
-                    Paragraph("GRUPPI UNITI", styles["label"]),
+                    Paragraph("ALTRI GRUPPI ASSOCIATI", styles["label"]),
                     Paragraph(
                         _union_group_details_text(entry.union_group_details),
                         styles["body"],
                     ),
                 ],
                 [
-                    Paragraph("ALTRI VOLONTARI", styles["label"]),
+                    Paragraph("VOLONTARI LOCALI ASSOCIATI", styles["label"]),
                     Paragraph(
                         _paragraph_text(
                             " e ".join(
@@ -497,6 +497,16 @@ def write_volunteer_schedule_pdf(
                                 for other in entry.other_volunteers
                             )
                         ),
+                        styles["body"],
+                    ),
+                ],
+                [
+                    Paragraph(
+                        "CODICE IDENTIFICATIVO PER RICONOSCIMENTO",
+                        styles["label"],
+                    ),
+                    Paragraph(
+                        _paragraph_text(entry.group_identification_code),
                         styles["body"],
                     ),
                 ],
@@ -626,6 +636,10 @@ def write_user_guide_pdf(
         step_table,
         Paragraph("Formato del file Excel", styles["guide_heading"]),
         Paragraph(
+            "Il formato v3 deve contenere le colonne base "
+            "<b>Codice Gruppo</b>, <b>Referente Gruppo</b>, "
+            "<b>Telefono Referente</b>, <b>Cod. ID. Gruppo</b>, "
+            "<b>Sala del Regno</b>, <b>N. Ospiti</b> e <b>Auto Ospiti</b>. "
             "Ogni giorno deve contenere le colonne <b>Mattina</b>, "
             "<b>Pomeriggio</b> e <b>UNIONI</b>. "
             "Scrivi ogni volontario come <b>NOME COMPLETO TELEFONO</b>, "
@@ -643,6 +657,13 @@ def write_user_guide_pdf(
             "volontario, ogni gruppo unito viene mostrato con codice, referente "
             "e numero di telefono. <b>Auto Ospiti</b> e <b>Note</b> non vengono "
             "mostrati.",
+            styles["body"],
+        ),
+        Paragraph(
+            "Per generare un solo PDF, seleziona la modalità volontario e inserisci "
+            "il volontario nel formato <b>NOME_COMPLETO NUMERO_TELEFONO</b>. "
+            "Tutti i suoi appuntamenti saranno raccolti nello stesso PDF. "
+            "Se il volontario non viene trovato, la generazione viene bloccata.",
             styles["body"],
         ),
         Paragraph("Se compare un errore", styles["guide_heading"]),

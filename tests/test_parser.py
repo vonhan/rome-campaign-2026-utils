@@ -58,6 +58,7 @@ def test_read_appointments_understands_definitive_header_shape(
     assert appointment.group_code == "RM-01"
     assert appointment.group_contact == "Referente Sintetico"
     assert appointment.group_contact_phone == "+39 333 444 5555"
+    assert appointment.group_identification_code == "RM-01-ID"
     assert appointment.kingdom_hall == "Sala Centro"
     assert appointment.guest_count == "4"
     assert appointment.guest_vehicle == "Auto blu"
@@ -85,7 +86,7 @@ def test_definitive_base_columns_use_positions_for_unknown_c_and_d_headers(
     workbook = load_workbook(path)
     sheet = workbook.active
     sheet["C1"] = "Intestazione telefono personalizzata"
-    sheet["D1"] = "Intestazione luogo personalizzata"
+    sheet["D1"] = "Intestazione identificativo personalizzata"
     workbook.save(path)
     workbook.close()
 
@@ -93,6 +94,30 @@ def test_definitive_base_columns_use_positions_for_unknown_c_and_d_headers(
 
     assert appointment.group_contact_phone == "+39 333 444 5555"
     assert appointment.kingdom_hall == "Sala Centro"
+
+
+def test_v2_schema_without_identification_column_is_rejected(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "v2.xlsx"
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.append(
+        [
+            "Codice Gruppo",
+            "Referente Gruppo",
+            "Telefono Referente",
+            "Sala del Regno",
+            "N. Ospiti",
+            "Auto Ospiti",
+            "26/10 (Lunedì)",
+        ]
+    )
+    sheet.append(["", "", "", "", "", "", "Mattina"])
+    workbook.save(path)
+
+    with pytest.raises(ValueError, match="schema v3"):
+        read_appointments(path)
 
 
 def test_read_appointments_keeps_every_non_empty_data_row(
@@ -265,7 +290,7 @@ def test_unknown_union_codes_are_aggregated_with_source_coordinates(
     with pytest.raises(WorkbookValidationError) as raised:
         read_appointments(path)
 
-    assert [issue.cell for issue in raised.value.issues] == ["I3", "I3"]
+    assert [issue.cell for issue in raised.value.issues] == ["J3", "J3"]
     assert [issue.field for issue in raised.value.issues] == ["UNIONI", "UNIONI"]
     assert "MISSING001" in str(raised.value)
     assert "MISSING002" in str(raised.value)
@@ -299,7 +324,7 @@ def test_validation_errors_are_aggregated_with_coordinates_without_values(
 
     error = raised.value
     assert len(error.issues) == 3
-    assert [issue.cell for issue in error.issues] == ["G3", "H3", "I3"]
+    assert [issue.cell for issue in error.issues] == ["H3", "I3", "J3"]
     message = str(error)
     assert "Foglio 'Appuntamenti'" in message
     assert "26/10 (Lunedì)" in message
@@ -316,7 +341,7 @@ def test_missing_required_header_is_reported(tmp_path: Path) -> None:
     sheet.append(["", "", "", "Mattina"])
     workbook.save(path)
 
-    with pytest.raises(ValueError, match="Intestazioni obbligatorie mancanti"):
+    with pytest.raises(ValueError, match="schema v3"):
         read_appointments(path)
 
 
@@ -328,14 +353,17 @@ def test_incomplete_date_block_is_reported(tmp_path: Path) -> None:
         [
             "Codice Gruppo",
             "Referente Gruppo",
+            "Telefono Referente",
+            "Cod. ID. Gruppo",
             "Sala del Regno",
             "N. Ospiti",
             "Auto Ospiti",
             "26/10 (Lunedì)",
             "",
+            "",
         ]
     )
-    sheet.append(["", "", "", "", "", "Mattina", "Pomeriggio"])
+    sheet.append(["", "", "", "", "", "", "", "Mattina", "Pomeriggio", ""])
     workbook.save(path)
 
     with pytest.raises(

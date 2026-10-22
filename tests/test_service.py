@@ -452,7 +452,7 @@ def test_union_group_and_delegate_phone_reach_both_slots_and_pdf_modes(
     for path in volunteer_result.appointment_files:
         text = " ".join(_pdf_text(path).split())
         assert "GRUPPO PRINCIPALE PRIMARY001" in text
-        assert "GRUPPI UNITI" in text
+        assert "ALTRI GRUPPI ASSOCIATI" in text
         assert "JOINED001" in text
         assert "JOINED002" in text
         assert "JOINED003" in text
@@ -522,6 +522,73 @@ def test_same_day_volunteer_entries_keep_morning_before_afternoon() -> None:
     ]
 
 
+def test_single_volunteer_filter_returns_all_matching_appointments(
+    tmp_path: Path, synthetic_workbook
+) -> None:
+    workbook = synthetic_workbook(
+        tmp_path / "input.xlsx",
+        [
+            [
+                "RM-01",
+                "Referente Uno",
+                "Sala A",
+                1,
+                "",
+                "ROSSI MARIO 111",
+                "",
+                "",
+                "",
+                "",
+                "",
+            ],
+            [
+                "RM-02",
+                "Referente Due",
+                "Sala B",
+                2,
+                "",
+                "",
+                "",
+                "",
+                "ROSSI MARIO 111",
+                "",
+                "",
+            ],
+        ],
+    )
+
+    result = service.generate_documents(
+        workbook,
+        tmp_path / "out",
+        "assets/icon.png",
+        mode="volontario",
+        volunteer_filter="rossi   mario 111",
+    )
+
+    assert len(result.appointment_files) == 1
+    text = " ".join(_pdf_text(result.appointment_files[0]).split())
+    assert "RM-01" in text
+    assert "RM-02" in text
+
+
+def test_single_volunteer_filter_reports_not_found_without_output(
+    tmp_path: Path, synthetic_workbook
+) -> None:
+    workbook = synthetic_workbook(tmp_path / "input.xlsx")
+    destination = tmp_path / "out"
+
+    with pytest.raises(ValueError, match="Volontario non trovato"):
+        service.generate_documents(
+            workbook,
+            destination,
+            "assets/icon.png",
+            mode="volontario",
+            volunteer_filter="INESISTENTE 999",
+        )
+
+    assert not destination.exists()
+
+
 def test_validation_failure_publishes_no_documents(
     tmp_path: Path, synthetic_workbook_v2
 ) -> None:
@@ -589,6 +656,6 @@ def test_unknown_union_group_publishes_no_documents(
             mode="volontario",
         )
 
-    assert [issue.cell for issue in raised.value.issues] == ["I3"]
+    assert [issue.cell for issue in raised.value.issues] == ["J3"]
     assert "MISSING001" in str(raised.value)
     assert not destination.exists()

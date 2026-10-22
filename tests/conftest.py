@@ -8,12 +8,15 @@ from openpyxl import Workbook
 
 
 def _expand_compact_row(row: list[object]) -> list[object]:
-    """Convert the compact test row into the definitive workbook layout."""
+    """Convert the compact test row into the v3 workbook layout."""
+    if not any(value is not None and value != "" for value in row):
+        return row
     if len(row) == 11:
         return [
             row[0],
             row[1],
             "",
+            f"{row[0]}-ID",
             row[2],
             row[3],
             row[4],
@@ -43,6 +46,7 @@ def synthetic_workbook() -> Callable[[Path, list[list[object]] | None], Path]:
                 "Codice Gruppo",
                 "Referente Gruppo",
                 "Telefono Referente",
+                "Cod. ID. Gruppo",
                 "Sala del Regno",
                 "N. Ospiti",
                 "Auto Ospiti",
@@ -64,6 +68,7 @@ def synthetic_workbook() -> Callable[[Path, list[list[object]] | None], Path]:
                 "",
                 "",
                 "",
+                "",
                 "Mattina",
                 "Pomeriggio",
                 "UNIONI",
@@ -74,8 +79,8 @@ def synthetic_workbook() -> Callable[[Path, list[list[object]] | None], Path]:
                 "NOTE",
             ]
         )
-        worksheet.merge_cells("G1:J1")
-        worksheet.merge_cells("K1:N1")
+        worksheet.merge_cells("H1:K1")
+        worksheet.merge_cells("L1:O1")
         rows = data_rows or [
             [
                 "RM-01",
@@ -113,6 +118,7 @@ def synthetic_workbook_v2() -> Callable[[Path, list[list[object]] | None], Path]
                 "Codice Gruppo",
                 "Referente Gruppo",
                 "Telefono Referente",
+                "Cod. ID. Gruppo",
                 "Sala del Regno",
                 "N. Ospiti",
                 "Auto Ospiti",
@@ -132,6 +138,7 @@ def synthetic_workbook_v2() -> Callable[[Path, list[list[object]] | None], Path]
                 "",
                 "",
                 "",
+                "",
                 "Mattina",
                 "Pomeriggio",
                 "UNIONI",
@@ -140,8 +147,8 @@ def synthetic_workbook_v2() -> Callable[[Path, list[list[object]] | None], Path]
                 "UNIONI",
             ]
         )
-        worksheet.merge_cells("G1:I1")
-        worksheet.merge_cells("J1:L1")
+        worksheet.merge_cells("H1:J1")
+        worksheet.merge_cells("K1:M1")
         rows = data_rows or [
             [
                 "RM-01",
@@ -159,7 +166,15 @@ def synthetic_workbook_v2() -> Callable[[Path, list[list[object]] | None], Path]
             ]
         ]
         for row in rows:
-            worksheet.append(row)
+            worksheet.append(
+                [
+                    row[0],
+                    row[1],
+                    row[2],
+                    f"{row[0]}-ID",
+                    *row[3:],
+                ]
+            )
         workbook.save(path)
         return path
 

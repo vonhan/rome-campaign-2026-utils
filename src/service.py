@@ -49,6 +49,22 @@ def _normalize_generation_mode(mode: str) -> str:
     return mapping[value]
 
 
+def _volunteer_filter_key(value: str) -> tuple[str, str]:
+    from src.excel_parser import parse_volunteer
+
+    if ";" in value:
+        raise ValueError(
+            "Volontario non valido: usare NOME_COMPLETO NUMERO_TELEFONO "
+            "senza separatori ';'."
+        )
+    volunteer = parse_volunteer(value)
+    if volunteer is None:
+        raise ValueError(
+            "Volontario non valido: usare NOME_COMPLETO NUMERO_TELEFONO."
+        )
+    return volunteer.identity_key
+
+
 def _appointment_filename(appointment: Appointment) -> str:
     group = _safe_filename(appointment.group_code)
     group_contact = _safe_filename(
@@ -140,6 +156,9 @@ def _build_volunteer_schedules(
                         source_row_number=appointment.source_row_number,
                         group_contact=appointment.group_contact,
                         group_contact_phone=appointment.group_contact_phone,
+                        group_identification_code=(
+                            appointment.group_identification_code
+                        ),
                         kingdom_hall=appointment.kingdom_hall,
                         guest_count=appointment.guest_count,
                         guest_vehicle=appointment.guest_vehicle,
@@ -198,6 +217,7 @@ def generate_documents(
     output_dir: str | Path,
     logo_path: str | Path | None = None,
     mode: str = "delegato",
+    volunteer_filter: str | None = None,
 ) -> GenerationResult:
     source = Path(input_path)
     destination = Path(output_dir)
@@ -213,15 +233,13 @@ def generate_documents(
     if not appointments:
         raise ValueError("Nessun appuntamento trovato nel file Excel.")
 
-    destination.mkdir(parents=True, exist_ok=True)
-    if not destination.is_dir():
-        raise NotADirectoryError(
-            f"La destinazione non è una cartella: {destination}"
-        )
-
     guide_name = "Guida-uso.pdf"
 
     if generation_mode == "delegato":
+        if volunteer_filter:
+            raise ValueError(
+                "Il filtro volontario è disponibile solo nella modalità volontario."
+            )
         final_names = [
             _appointment_filename(appointment) for appointment in appointments
         ]
@@ -232,7 +250,24 @@ def generate_documents(
             raise ValueError(
                 "Nessun volontario trovato nelle celle Mattina o Pomeriggio."
             )
+        if volunteer_filter:
+            filter_key = _volunteer_filter_key(volunteer_filter)
+            schedules = [
+                schedule
+                for schedule in schedules
+                if schedule.volunteer.identity_key == filter_key
+            ]
+            if not schedules:
+                raise ValueError(
+                    f"Volontario non trovato: {volunteer_filter.strip()}"
+                )
         final_names = _volunteer_schedule_filenames(schedules)
+
+    destination.mkdir(parents=True, exist_ok=True)
+    if not destination.is_dir():
+        raise NotADirectoryError(
+            f"La destinazione non è una cartella: {destination}"
+        )
 
     with tempfile.TemporaryDirectory(prefix=".generazione-", dir=destination) as temp:
         temp_dir = Path(temp)
